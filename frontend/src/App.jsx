@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import api from "./api";
+import AdminMenu from "./components/AdminMenu";
 import "./App.css";
 
 function App() {
@@ -13,6 +14,7 @@ function App() {
   const [selectedCategory, setSelectedCategory] = useState("Tất cả");
   const [loading, setLoading] = useState(true);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
+  const [activeScreen, setActiveScreen] = useState("pos");
 
   const [todayReport, setTodayReport] = useState({
     totalRevenue: 0,
@@ -114,6 +116,11 @@ function App() {
   };
 
   const addToCart = (item) => {
+    if (!item.isAvailable) {
+      alert("Món này đang tạm hết");
+      return;
+    }
+
     const existedItem = cart.find((cartItem) => cartItem.menuItemId === item._id);
 
     if (existedItem) {
@@ -441,6 +448,22 @@ function App() {
           </div>
         </div>
 
+        <div className="side-nav">
+          <button
+            className={activeScreen === "pos" ? "active" : ""}
+            onClick={() => setActiveScreen("pos")}
+          >
+            POS bán hàng
+          </button>
+
+          <button
+            className={activeScreen === "admin" ? "active" : ""}
+            onClick={() => setActiveScreen("admin")}
+          >
+            Admin menu
+          </button>
+        </div>
+
         <div className="sidebar-box">
           <span className="label">Tổng đơn</span>
           <strong>{orders.length}</strong>
@@ -475,319 +498,352 @@ function App() {
       </aside>
 
       <main className="main">
-        <section className="topbar">
-          <div>
-            <h2>Menu đồ uống</h2>
-            <p>Chọn bàn, chọn món, thêm ghi chú và tạo order cho khách.</p>
-          </div>
+        {activeScreen === "admin" ? (
+          <AdminMenu onMenuChanged={loadMenu} />
+        ) : (
+          <>
+            <section className="topbar">
+              <div>
+                <h2>Menu đồ uống</h2>
+                <p>Chọn bàn, chọn món, thêm ghi chú và tạo order cho khách.</p>
+              </div>
 
-          <button
-            className="refresh-button"
-            onClick={() => {
-              loadMenu();
-              loadOrders();
-              loadTables();
-              loadTodayReport();
-            }}
-          >
-            Làm mới
-          </button>
-        </section>
-
-        <section className="tables-section">
-          <div className="section-heading">
-            <div>
-              <h2>Sơ đồ bàn</h2>
-              <p>Chọn bàn trước khi tạo order.</p>
-            </div>
-
-            <button className="refresh-button small" onClick={loadTables}>
-              Làm mới bàn
-            </button>
-          </div>
-
-          <div className="tables-grid">
-            <button
-              className={
-                selectedTableId === ""
-                  ? "table-card takeaway selected"
-                  : "table-card takeaway"
-              }
-              onClick={() => setSelectedTableId("")}
-            >
-              <strong>Takeaway</strong>
-              <span>Mang đi</span>
-            </button>
-
-            {tables.map((table) => (
-              <div
-                className={
-                  selectedTableId === table._id
-                    ? `table-card ${table.status} selected`
-                    : `table-card ${table.status}`
-                }
-                key={table._id}
+              <button
+                className="refresh-button"
+                onClick={() => {
+                  loadMenu();
+                  loadOrders();
+                  loadTables();
+                  loadTodayReport();
+                }}
               >
-                <button
-                  className="table-main-button"
-                  onClick={() => {
-                    if (table.status !== "available") {
-                      alert(`${table.name} hiện không trống`);
-                      return;
-                    }
+                Làm mới
+              </button>
+            </section>
 
-                    setSelectedTableId(table._id);
-                  }}
-                >
-                  <strong>{table.name}</strong>
-                  <span>{table.area}</span>
-                  <em>{getTableStatusText(table.status)}</em>
-                </button>
-
-                <div className="table-actions">
-                  <button
-                    onClick={() => updateTableStatus(table._id, "available")}
-                  >
-                    Trống
-                  </button>
-                  <button
-                    onClick={() => updateTableStatus(table._id, "cleaning")}
-                  >
-                    Chờ dọn
-                  </button>
+            <section className="tables-section">
+              <div className="section-heading">
+                <div>
+                  <h2>Sơ đồ bàn</h2>
+                  <p>Chọn bàn trước khi tạo order.</p>
                 </div>
-              </div>
-            ))}
-          </div>
-        </section>
 
-        <section className="content-layout">
-          <div className="menu-area">
-            <div className="category-tabs">
-              {categories.map((category) => (
-                <button
-                  key={category}
-                  className={
-                    selectedCategory === category
-                      ? "category-button active"
-                      : "category-button"
-                  }
-                  onClick={() => setSelectedCategory(category)}
-                >
-                  {category}
+                <button className="refresh-button small" onClick={loadTables}>
+                  Làm mới bàn
                 </button>
-              ))}
-            </div>
-
-            {loading ? (
-              <div className="empty-box">Đang tải menu...</div>
-            ) : filteredMenu.length === 0 ? (
-              <div className="empty-box">
-                Chưa có món nào. Hãy thêm món bằng API trước.
               </div>
-            ) : (
-              <div className="menu-grid">
-                {filteredMenu.map((item) => (
-                  <article className="menu-card" key={item._id}>
-                    <div className="menu-image-wrap">
-                      {item.image ? (
-                        <img src={item.image} alt={item.name} />
-                      ) : (
-                        <div className="image-placeholder">No image</div>
-                      )}
-                      <span className="category-badge">{item.category}</span>
-                    </div>
 
-                    <div className="menu-info">
-                      <h3>{item.name}</h3>
-                      <p>{item.isAvailable ? "Đang bán" : "Tạm hết"}</p>
+              <div className="tables-grid">
+                <button
+                  className={
+                    selectedTableId === ""
+                      ? "table-card takeaway selected"
+                      : "table-card takeaway"
+                  }
+                  onClick={() => setSelectedTableId("")}
+                >
+                  <strong>Takeaway</strong>
+                  <span>Mang đi</span>
+                </button>
 
-                      <div className="menu-bottom">
-                        <strong>{item.price.toLocaleString("vi-VN")}đ</strong>
-                        <button onClick={() => addToCart(item)}>+ Thêm</button>
-                      </div>
+                {tables.map((table) => (
+                  <div
+                    className={
+                      selectedTableId === table._id
+                        ? `table-card ${table.status} selected`
+                        : `table-card ${table.status}`
+                    }
+                    key={table._id}
+                  >
+                    <button
+                      className="table-main-button"
+                      onClick={() => {
+                        if (table.status !== "available") {
+                          alert(`${table.name} hiện không trống`);
+                          return;
+                        }
+
+                        setSelectedTableId(table._id);
+                      }}
+                    >
+                      <strong>{table.name}</strong>
+                      <span>{table.area}</span>
+                      <em>{getTableStatusText(table.status)}</em>
+                    </button>
+
+                    <div className="table-actions">
+                      <button
+                        onClick={() =>
+                          updateTableStatus(table._id, "available")
+                        }
+                      >
+                        Trống
+                      </button>
+                      <button
+                        onClick={() =>
+                          updateTableStatus(table._id, "cleaning")
+                        }
+                      >
+                        Chờ dọn
+                      </button>
                     </div>
-                  </article>
+                  </div>
                 ))}
               </div>
-            )}
-          </div>
+            </section>
 
-          <aside className="order-panel">
-            <div className="panel-card">
-              <h2>Đơn hiện tại</h2>
+            <section className="content-layout">
+              <div className="menu-area">
+                <div className="category-tabs">
+                  {categories.map((category) => (
+                    <button
+                      key={category}
+                      className={
+                        selectedCategory === category
+                          ? "category-button active"
+                          : "category-button"
+                      }
+                      onClick={() => setSelectedCategory(category)}
+                    >
+                      {category}
+                    </button>
+                  ))}
+                </div>
 
-              <div className="selected-table-note">
-                Đang chọn:{" "}
-                <strong>{selectedTable ? selectedTable.name : "Takeaway"}</strong>
-              </div>
-
-              <div className="form-grid">
-                <input
-                  value={selectedTable ? selectedTable.name : tableName}
-                  onChange={(e) => setTableName(e.target.value)}
-                  placeholder="Tên bàn / Takeaway"
-                  disabled={!!selectedTable}
-                />
-
-                <input
-                  value={customerName}
-                  onChange={(e) => setCustomerName(e.target.value)}
-                  placeholder="Tên khách hàng"
-                />
-              </div>
-
-              <div className="cart-list">
-                {cart.length === 0 ? (
-                  <div className="empty-cart">
-                    <span>🛒</span>
-                    <p>Chưa chọn món</p>
+                {loading ? (
+                  <div className="empty-box">Đang tải menu...</div>
+                ) : filteredMenu.length === 0 ? (
+                  <div className="empty-box">
+                    Chưa có món nào. Hãy thêm món bằng API trước.
                   </div>
                 ) : (
-                  cart.map((item) => (
-                    <div className="cart-item" key={item.menuItemId}>
-                      <div className="cart-top">
-                        <div>
-                          <h4>{item.name}</h4>
-                          <p>{item.price.toLocaleString("vi-VN")}đ</p>
+                  <div className="menu-grid">
+                    {filteredMenu.map((item) => (
+                      <article className="menu-card" key={item._id}>
+                        <div className="menu-image-wrap">
+                          {item.image ? (
+                            <img src={item.image} alt={item.name} />
+                          ) : (
+                            <div className="image-placeholder">No image</div>
+                          )}
+                          <span className="category-badge">
+                            {item.category}
+                          </span>
                         </div>
 
-                        <div className="quantity-control">
-                          <button
-                            onClick={() =>
-                              updateQuantity(item.menuItemId, item.quantity - 1)
-                            }
-                          >
-                            -
-                          </button>
-                          <span>{item.quantity}</span>
-                          <button
-                            onClick={() =>
-                              updateQuantity(item.menuItemId, item.quantity + 1)
-                            }
-                          >
-                            +
-                          </button>
-                        </div>
-                      </div>
+                        <div className="menu-info">
+                          <h3>{item.name}</h3>
+                          <p>{item.isAvailable ? "Đang bán" : "Tạm hết"}</p>
 
-                      <input
-                        value={item.note}
-                        onChange={(e) =>
-                          updateNote(item.menuItemId, e.target.value)
-                        }
-                        placeholder="Ghi chú: ít đá, không đường..."
-                      />
-                    </div>
-                  ))
+                          <div className="menu-bottom">
+                            <strong>
+                              {item.price.toLocaleString("vi-VN")}đ
+                            </strong>
+                            <button
+                              disabled={!item.isAvailable}
+                              onClick={() => addToCart(item)}
+                            >
+                              {item.isAvailable ? "+ Thêm" : "Tạm hết"}
+                            </button>
+                          </div>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
                 )}
               </div>
 
-              <div className="total-box">
-                <span>Tổng tiền</span>
-                <strong>{totalAmount.toLocaleString("vi-VN")}đ</strong>
-              </div>
+              <aside className="order-panel">
+                <div className="panel-card">
+                  <h2>Đơn hiện tại</h2>
 
-              <button className="order-button" onClick={createOrder}>
-                Xác nhận Order
-              </button>
-            </div>
+                  <div className="selected-table-note">
+                    Đang chọn:{" "}
+                    <strong>
+                      {selectedTable ? selectedTable.name : "Takeaway"}
+                    </strong>
+                  </div>
 
-            <div className="panel-card orders-card">
-              <h2>Đơn đã tạo</h2>
+                  <div className="form-grid">
+                    <input
+                      value={selectedTable ? selectedTable.name : tableName}
+                      onChange={(e) => setTableName(e.target.value)}
+                      placeholder="Tên bàn / Takeaway"
+                      disabled={!!selectedTable}
+                    />
 
-              {orders.length === 0 ? (
-                <p className="muted">Chưa có đơn nào.</p>
-              ) : (
-                orders.slice(0, 8).map((order) => (
-                  <div className="order-card" key={order._id}>
-                    <div className="order-header">
-                      <strong>{order.tableName}</strong>
-                      <span className={`status ${order.status}`}>
-                        {getOrderStatusText(order.status)}
-                      </span>
-                    </div>
+                    <input
+                      value={customerName}
+                      onChange={(e) => setCustomerName(e.target.value)}
+                      placeholder="Tên khách hàng"
+                    />
+                  </div>
 
-                    <p className="order-customer">
-                      Khách: {order.customerName || "Không có"}
-                    </p>
+                  <div className="cart-list">
+                    {cart.length === 0 ? (
+                      <div className="empty-cart">
+                        <span>🛒</span>
+                        <p>Chưa chọn món</p>
+                      </div>
+                    ) : (
+                      cart.map((item) => (
+                        <div className="cart-item" key={item.menuItemId}>
+                          <div className="cart-top">
+                            <div>
+                              <h4>{item.name}</h4>
+                              <p>{item.price.toLocaleString("vi-VN")}đ</p>
+                            </div>
 
-                    <p className="payment-line">
-                      Thanh toán:{" "}
-                      <strong>
-                        {order.paymentStatus === "paid"
-                          ? `Đã thanh toán - ${getPaymentMethodText(
-                              order.paymentMethod
-                            )}`
-                          : "Chưa thanh toán"}
-                      </strong>
-                    </p>
+                            <div className="quantity-control">
+                              <button
+                                onClick={() =>
+                                  updateQuantity(
+                                    item.menuItemId,
+                                    item.quantity - 1
+                                  )
+                                }
+                              >
+                                -
+                              </button>
+                              <span>{item.quantity}</span>
+                              <button
+                                onClick={() =>
+                                  updateQuantity(
+                                    item.menuItemId,
+                                    item.quantity + 1
+                                  )
+                                }
+                              >
+                                +
+                              </button>
+                            </div>
+                          </div>
 
-                    <div className="order-items">
-                      {order.items.map((item, index) => (
-                        <p key={index}>
-                          {item.quantity} x {item.name}
-                          {item.note ? ` — ${item.note}` : ""}
+                          <input
+                            value={item.note}
+                            onChange={(e) =>
+                              updateNote(item.menuItemId, e.target.value)
+                            }
+                            placeholder="Ghi chú: ít đá, không đường..."
+                          />
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  <div className="total-box">
+                    <span>Tổng tiền</span>
+                    <strong>{totalAmount.toLocaleString("vi-VN")}đ</strong>
+                  </div>
+
+                  <button className="order-button" onClick={createOrder}>
+                    Xác nhận Order
+                  </button>
+                </div>
+
+                <div className="panel-card orders-card">
+                  <h2>Đơn đã tạo</h2>
+
+                  {orders.length === 0 ? (
+                    <p className="muted">Chưa có đơn nào.</p>
+                  ) : (
+                    orders.slice(0, 8).map((order) => (
+                      <div className="order-card" key={order._id}>
+                        <div className="order-header">
+                          <strong>{order.tableName}</strong>
+                          <span className={`status ${order.status}`}>
+                            {getOrderStatusText(order.status)}
+                          </span>
+                        </div>
+
+                        <p className="order-customer">
+                          Khách: {order.customerName || "Không có"}
                         </p>
-                      ))}
-                    </div>
 
-                    <div className="order-footer">
-                      <strong>
-                        {order.totalAmount.toLocaleString("vi-VN")}đ
-                      </strong>
-                    </div>
+                        <p className="payment-line">
+                          Thanh toán:{" "}
+                          <strong>
+                            {order.paymentStatus === "paid"
+                              ? `Đã thanh toán - ${getPaymentMethodText(
+                                  order.paymentMethod
+                                )}`
+                              : "Chưa thanh toán"}
+                          </strong>
+                        </p>
 
-                    <div className="status-buttons">
-                      <button
-                        onClick={() =>
-                          updateOrderStatus(order._id, "preparing")
-                        }
-                      >
-                        Pha chế
-                      </button>
-                      <button
-                        onClick={() =>
-                          updateOrderStatus(order._id, "completed")
-                        }
-                      >
-                        Xong
-                      </button>
-                      <button
-                        onClick={() =>
-                          updateOrderStatus(order._id, "cancelled")
-                        }
-                      >
-                        Hủy
-                      </button>
-                    </div>
+                        <div className="order-items">
+                          {order.items.map((item, index) => (
+                            <p key={index}>
+                              {item.quantity} x {item.name}
+                              {item.note ? ` — ${item.note}` : ""}
+                            </p>
+                          ))}
+                        </div>
 
-                    {order.paymentStatus !== "paid" &&
-                      order.status !== "cancelled" && (
-                        <div className="payment-buttons">
-                          <button onClick={() => payOrder(order._id, "cash")}>
-                            Tiền mặt
+                        <div className="order-footer">
+                          <strong>
+                            {order.totalAmount.toLocaleString("vi-VN")}đ
+                          </strong>
+                        </div>
+
+                        <div className="status-buttons">
+                          <button
+                            onClick={() =>
+                              updateOrderStatus(order._id, "preparing")
+                            }
+                          >
+                            Pha chế
                           </button>
-                          <button onClick={() => payOrder(order._id, "bank")}>
-                            Chuyển khoản
+                          <button
+                            onClick={() =>
+                              updateOrderStatus(order._id, "completed")
+                            }
+                          >
+                            Xong
                           </button>
-                          <button onClick={() => payOrder(order._id, "card")}>
-                            Thẻ
+                          <button
+                            onClick={() =>
+                              updateOrderStatus(order._id, "cancelled")
+                            }
+                          >
+                            Hủy
                           </button>
                         </div>
-                      )}
 
-                    <div className="invoice-buttons">
-                      <button onClick={() => setSelectedInvoice(order)}>
-                        Xem hóa đơn
-                      </button>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </aside>
-        </section>
+                        {order.paymentStatus !== "paid" &&
+                          order.status !== "cancelled" && (
+                            <div className="payment-buttons">
+                              <button
+                                onClick={() => payOrder(order._id, "cash")}
+                              >
+                                Tiền mặt
+                              </button>
+                              <button
+                                onClick={() => payOrder(order._id, "bank")}
+                              >
+                                Chuyển khoản
+                              </button>
+                              <button
+                                onClick={() => payOrder(order._id, "card")}
+                              >
+                                Thẻ
+                              </button>
+                            </div>
+                          )}
+
+                        <div className="invoice-buttons">
+                          <button onClick={() => setSelectedInvoice(order)}>
+                            Xem hóa đơn
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </aside>
+            </section>
+          </>
+        )}
       </main>
 
       {selectedInvoice && (

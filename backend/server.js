@@ -286,7 +286,7 @@ app.get("/api/menu", async (req, res) => {
 
 app.post("/api/menu", async (req, res) => {
   try {
-    const { name, category, price, image } = req.body;
+    const { name, category, price, image, isAvailable } = req.body;
 
     if (!name || !category || !price) {
       return res.status(400).json({
@@ -299,7 +299,8 @@ app.post("/api/menu", async (req, res) => {
       name,
       category,
       price,
-      image
+      image,
+      isAvailable
     });
 
     res.status(201).json({
@@ -311,6 +312,103 @@ app.post("/api/menu", async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Cannot create menu item",
+      error: error.message
+    });
+  }
+});
+
+app.patch("/api/menu/:id", async (req, res) => {
+  try {
+    const { name, category, price, image, isAvailable } = req.body;
+
+    if (!name || !category || !price) {
+      return res.status(400).json({
+        success: false,
+        message: "Name, category and price are required"
+      });
+    }
+
+    const updatedMenuItem = await MenuItem.findByIdAndUpdate(
+      req.params.id,
+      {
+        name,
+        category,
+        price,
+        image,
+        isAvailable
+      },
+      { new: true }
+    );
+
+    if (!updatedMenuItem) {
+      return res.status(404).json({
+        success: false,
+        message: "Menu item not found"
+      });
+    }
+
+    res.json({
+      success: true,
+      message: "Menu item updated",
+      data: updatedMenuItem
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Cannot update menu item",
+      error: error.message
+    });
+  }
+});
+
+app.patch("/api/menu/:id/toggle", async (req, res) => {
+  try {
+    const menuItem = await MenuItem.findById(req.params.id);
+
+    if (!menuItem) {
+      return res.status(404).json({
+        success: false,
+        message: "Menu item not found"
+      });
+    }
+
+    menuItem.isAvailable = !menuItem.isAvailable;
+    await menuItem.save();
+
+    res.json({
+      success: true,
+      message: "Menu item status updated",
+      data: menuItem
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Cannot toggle menu item",
+      error: error.message
+    });
+  }
+});
+
+app.delete("/api/menu/:id", async (req, res) => {
+  try {
+    const deletedMenuItem = await MenuItem.findByIdAndDelete(req.params.id);
+
+    if (!deletedMenuItem) {
+      return res.status(404).json({
+        success: false,
+        message: "Menu item not found"
+      });
+    }
+
+    res.json({
+      success: true,
+      message: "Menu item deleted",
+      data: deletedMenuItem
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Cannot delete menu item",
       error: error.message
     });
   }
