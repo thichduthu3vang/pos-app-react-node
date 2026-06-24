@@ -6,6 +6,8 @@ function App() {
   const [menuItems, setMenuItems] = useState([]);
   const [orders, setOrders] = useState([]);
   const [cart, setCart] = useState([]);
+  const [tables, setTables] = useState([]);
+  const [selectedTableId, setSelectedTableId] = useState("");
   const [tableName, setTableName] = useState("Takeaway");
   const [customerName, setCustomerName] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Tất cả");
@@ -32,9 +34,19 @@ function App() {
     }
   };
 
+  const loadTables = async () => {
+    try {
+      const response = await api.get("/api/tables");
+      setTables(response.data.data || []);
+    } catch (error) {
+      console.error("Cannot load tables:", error);
+    }
+  };
+
   useEffect(() => {
     loadMenu();
     loadOrders();
+    loadTables();
   }, []);
 
   const categories = useMemo(() => {
@@ -49,6 +61,24 @@ function App() {
 
     return menuItems.filter((item) => item.category === selectedCategory);
   }, [menuItems, selectedCategory]);
+
+  const selectedTable = tables.find((table) => table._id === selectedTableId);
+
+  const getTableStatusText = (status) => {
+    if (status === "available") return "Trống";
+    if (status === "occupied") return "Có khách";
+    if (status === "cleaning") return "Chờ dọn";
+    if (status === "reserved") return "Đã đặt";
+    return status;
+  };
+
+  const getOrderStatusText = (status) => {
+    if (status === "pending") return "Đơn mới";
+    if (status === "preparing") return "Đang pha chế";
+    if (status === "completed") return "Hoàn thành";
+    if (status === "cancelled") return "Đã hủy";
+    return status;
+  };
 
   const addToCart = (item) => {
     const existedItem = cart.find((cartItem) => cartItem.menuItemId === item._id);
@@ -110,7 +140,8 @@ function App() {
 
     try {
       await api.post("/api/orders", {
-        tableName,
+        tableId: selectedTableId || null,
+        tableName: selectedTable ? selectedTable.name : tableName,
         customerName,
         items: cart,
         paymentMethod: "cash"
@@ -120,10 +151,12 @@ function App() {
       setCart([]);
       setCustomerName("");
       setTableName("Takeaway");
+      setSelectedTableId("");
       loadOrders();
+      loadTables();
     } catch (error) {
       console.error("Cannot create order:", error);
-      alert("Tạo đơn thất bại");
+      alert(error.response?.data?.message || "Tạo đơn thất bại");
     }
   };
 
@@ -134,8 +167,23 @@ function App() {
       });
 
       loadOrders();
+      loadTables();
     } catch (error) {
       console.error("Cannot update order:", error);
+      alert("Không thể cập nhật trạng thái đơn");
+    }
+  };
+
+  const updateTableStatus = async (tableId, status) => {
+    try {
+      await api.patch(`/api/tables/${tableId}/status`, {
+        status
+      });
+
+      loadTables();
+    } catch (error) {
+      console.error("Cannot update table status:", error);
+      alert("Không thể cập nhật trạng thái bàn");
     }
   };
 
@@ -159,18 +207,99 @@ function App() {
           <span className="label">Giỏ hiện tại</span>
           <strong>{cart.length} món</strong>
         </div>
+
+        <div className="sidebar-box">
+          <span className="label">Bàn đang có khách</span>
+          <strong>
+            {tables.filter((table) => table.status === "occupied").length}
+          </strong>
+        </div>
       </aside>
 
       <main className="main">
         <section className="topbar">
           <div>
             <h2>Menu đồ uống</h2>
-            <p>Chọn món, thêm ghi chú và tạo order cho khách.</p>
+            <p>Chọn bàn, chọn món, thêm ghi chú và tạo order cho khách.</p>
           </div>
 
-          <button className="refresh-button" onClick={loadMenu}>
-            Làm mới menu
+          <button
+            className="refresh-button"
+            onClick={() => {
+              loadMenu();
+              loadOrders();
+              loadTables();
+            }}
+          >
+            Làm mới
           </button>
+        </section>
+
+        <section className="tables-section">
+          <div className="section-heading">
+            <div>
+              <h2>Sơ đồ bàn</h2>
+              <p>Chọn bàn trước khi tạo order.</p>
+            </div>
+
+            <button className="refresh-button small" onClick={loadTables}>
+              Làm mới bàn
+            </button>
+          </div>
+
+          <div className="tables-grid">
+            <button
+              className={
+                selectedTableId === ""
+                  ? "table-card takeaway selected"
+                  : "table-card takeaway"
+              }
+              onClick={() => setSelectedTableId("")}
+            >
+              <strong>Takeaway</strong>
+              <span>Mang đi</span>
+            </button>
+
+            {tables.map((table) => (
+              <div
+                className={
+                  selectedTableId === table._id
+                    ? `table-card ${table.status} selected`
+                    : `table-card ${table.status}`
+                }
+                key={table._id}
+              >
+                <button
+                  className="table-main-button"
+                  onClick={() => {
+                    if (table.status !== "available") {
+                      alert(`${table.name} hiện không trống`);
+                      return;
+                    }
+
+                    setSelectedTableId(table._id);
+                  }}
+                >
+                  <strong>{table.name}</strong>
+                  <span>{table.area}</span>
+                  <em>{getTableStatusText(table.status)}</em>
+                </button>
+
+                <div className="table-actions">
+                  <button
+                    onClick={() => updateTableStatus(table._id, "available")}
+                  >
+                    Trống
+                  </button>
+                  <button
+                    onClick={() => updateTableStatus(table._id, "cleaning")}
+                  >
+                    Chờ dọn
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
         </section>
 
         <section className="content-layout">
@@ -229,11 +358,17 @@ function App() {
             <div className="panel-card">
               <h2>Đơn hiện tại</h2>
 
+              <div className="selected-table-note">
+                Đang chọn:{" "}
+                <strong>{selectedTable ? selectedTable.name : "Takeaway"}</strong>
+              </div>
+
               <div className="form-grid">
                 <input
-                  value={tableName}
+                  value={selectedTable ? selectedTable.name : tableName}
                   onChange={(e) => setTableName(e.target.value)}
                   placeholder="Tên bàn / Takeaway"
+                  disabled={!!selectedTable}
                 />
 
                 <input
@@ -305,12 +440,12 @@ function App() {
               {orders.length === 0 ? (
                 <p className="muted">Chưa có đơn nào.</p>
               ) : (
-                orders.slice(0, 5).map((order) => (
+                orders.slice(0, 8).map((order) => (
                   <div className="order-card" key={order._id}>
                     <div className="order-header">
                       <strong>{order.tableName}</strong>
                       <span className={`status ${order.status}`}>
-                        {order.status}
+                        {getOrderStatusText(order.status)}
                       </span>
                     </div>
 

@@ -4,32 +4,20 @@ import dotenv from "dotenv";
 import mongoose from "mongoose";
 import dns from "node:dns";
 
-// Fix lỗi DNS khi kết nối MongoDB Atlas bằng mongodb+srv
 dns.setServers(["8.8.8.8", "1.1.1.1"]);
 
 dotenv.config();
 
 const app = express();
 
-app.use(
-  cors({
-    origin: "http://localhost:5173"
-  })
-);
-
+app.use(cors());
 app.use(express.json());
 
-// =======================
-// CHECK ENV
-// =======================
 if (!process.env.MONGODB_URI) {
   console.error("Missing MONGODB_URI in backend/.env file");
   process.exit(1);
 }
 
-// =======================
-// CONNECT MONGODB
-// =======================
 mongoose
   .connect(process.env.MONGODB_URI, {
     serverSelectionTimeoutMS: 10000
@@ -41,6 +29,35 @@ mongoose
     console.error("MongoDB connection error:", error.message);
     process.exit(1);
   });
+
+// =======================
+// TABLE SCHEMA
+// =======================
+const tableSchema = new mongoose.Schema(
+  {
+    name: {
+      type: String,
+      required: true
+    },
+    area: {
+      type: String,
+      default: "Khu chính"
+    },
+    status: {
+      type: String,
+      default: "available"
+      // available, occupied, cleaning, reserved
+    },
+    currentOrderId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Order",
+      default: null
+    }
+  },
+  { timestamps: true }
+);
+
+const Table = mongoose.model("Table", tableSchema);
 
 // =======================
 // MENU SCHEMA
@@ -91,6 +108,11 @@ const orderItemSchema = new mongoose.Schema(
 
 const orderSchema = new mongoose.Schema(
   {
+    tableId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Table",
+      default: null
+    },
     tableName: {
       type: String,
       default: "Takeaway"
@@ -132,6 +154,104 @@ app.get("/api/health", (req, res) => {
     message: "Backend API is working",
     mongoStatus: mongoose.connection.readyState
   });
+});
+
+// =======================
+// TABLE API
+// =======================
+app.get("/api/tables", async (req, res) => {
+  try {
+    const tables = await Table.find().sort({ createdAt: 1 });
+
+    res.json({
+      success: true,
+      data: tables
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Cannot get tables",
+      error: error.message
+    });
+  }
+});
+
+app.post("/api/tables", async (req, res) => {
+  try {
+    const { name, area } = req.body;
+
+    if (!name) {
+      return res.status(400).json({
+        success: false,
+        message: "Table name is required"
+      });
+    }
+
+    const newTable = await Table.create({
+      name,
+      area
+    });
+
+    res.status(201).json({
+      success: true,
+      message: "Table created",
+      data: newTable
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Cannot create table",
+      error: error.message
+    });
+  }
+});
+
+app.patch("/api/tables/:id/status", async (req, res) => {
+  try {
+    const { status } = req.body;
+
+    const allowedStatuses = ["available", "occupied", "cleaning", "reserved"];
+
+    if (!allowedStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid table status"
+      });
+    }
+
+    const updateData = {
+      status
+    };
+
+    if (status === "available") {
+      updateData.currentOrderId = null;
+    }
+
+    const updatedTable = await Table.findByIdAndUpdate(
+      req.params.id,
+      updateData,
+      { new: true }
+    );
+
+    if (!updatedTable) {
+      return res.status(404).json({
+        success: false,
+        message: "Table not found"
+      });
+    }
+
+    res.json({
+      success: true,
+      message: "Table status updated",
+      data: updatedTable
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Cannot update table status",
+      error: error.message
+    });
+  }
 });
 
 // =======================
@@ -208,7 +328,7 @@ app.get("/api/orders", async (req, res) => {
 
 app.post("/api/orders", async (req, res) => {
   try {
-    const { tableName, customerName, items, paymentMethod } = req.body;
+    const { tableId, tableName, customerName, items, paymentMethod } = req.body;
 
     if (!items || items.length === 0) {
       return res.status(400).json({
@@ -217,17 +337,44 @@ app.post("/api/orders", async (req, res) => {
       });
     }
 
+    let selectedTable = null;
+
+    if (tableId) {
+      selectedTable = await Table.findById(tableId);
+
+      if (!selectedTable) {
+        return res.status(404).json({
+          success: false,
+          message: "Table not found"
+        });
+      }
+
+      if (selectedTable.status !== "available") {
+        return res.status(400).json({
+          success: false,
+          message: `${selectedTable.name} hiện không trống`
+        });
+      }
+    }
+
     const totalAmount = items.reduce((sum, item) => {
       return sum + item.price * item.quantity;
     }, 0);
 
     const newOrder = await Order.create({
-      tableName,
+      tableId: selectedTable ? selectedTable._id : null,
+      tableName: selectedTable ? selectedTable.name : tableName || "Takeaway",
       customerName,
       items,
       totalAmount,
       paymentMethod
     });
+
+    if (selectedTable) {
+      selectedTable.status = "occupied";
+      selectedTable.currentOrderId = newOrder._id;
+      await selectedTable.save();
+    }
 
     res.status(201).json({
       success: true,
@@ -267,6 +414,21 @@ app.patch("/api/orders/:id/status", async (req, res) => {
         success: false,
         message: "Order not found"
       });
+    }
+
+    if (updatedOrder.tableId) {
+      if (status === "completed") {
+        await Table.findByIdAndUpdate(updatedOrder.tableId, {
+          status: "cleaning"
+        });
+      }
+
+      if (status === "cancelled") {
+        await Table.findByIdAndUpdate(updatedOrder.tableId, {
+          status: "available",
+          currentOrderId: null
+        });
+      }
     }
 
     res.json({
