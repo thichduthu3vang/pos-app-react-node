@@ -129,6 +129,16 @@ const orderSchema = new mongoose.Schema(
     paymentMethod: {
       type: String,
       default: "cash"
+      // cash, bank, card, momo, zalopay
+    },
+    paymentStatus: {
+      type: String,
+      default: "unpaid"
+      // unpaid, paid
+    },
+    paidAt: {
+      type: Date,
+      default: null
     },
     status: {
       type: String,
@@ -367,7 +377,9 @@ app.post("/api/orders", async (req, res) => {
       customerName,
       items,
       totalAmount,
-      paymentMethod
+      paymentMethod: paymentMethod || "cash",
+      paymentStatus: "unpaid",
+      paidAt: null
     });
 
     if (selectedTable) {
@@ -440,6 +452,119 @@ app.patch("/api/orders/:id/status", async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Cannot update order status",
+      error: error.message
+    });
+  }
+});
+
+app.patch("/api/orders/:id/pay", async (req, res) => {
+  try {
+    const { paymentMethod } = req.body;
+
+    const allowedPaymentMethods = ["cash", "bank", "card", "momo", "zalopay"];
+
+    if (!allowedPaymentMethods.includes(paymentMethod)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid payment method"
+      });
+    }
+
+    const order = await Order.findById(req.params.id);
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found"
+      });
+    }
+
+    if (order.status === "cancelled") {
+      return res.status(400).json({
+        success: false,
+        message: "Không thể thanh toán đơn đã hủy"
+      });
+    }
+
+    if (order.paymentStatus === "paid") {
+      return res.status(400).json({
+        success: false,
+        message: "Đơn này đã thanh toán rồi"
+      });
+    }
+
+    order.paymentMethod = paymentMethod;
+    order.paymentStatus = "paid";
+    order.paidAt = new Date();
+
+    await order.save();
+
+    if (order.tableId) {
+      await Table.findByIdAndUpdate(order.tableId, {
+        status: "available",
+        currentOrderId: null
+      });
+    }
+
+    res.json({
+      success: true,
+      message: "Order paid successfully",
+      data: order
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Cannot pay order",
+      error: error.message
+    });
+  }
+});
+
+// =======================
+// REPORT API
+// =======================
+app.get("/api/reports/today", async (req, res) => {
+  try {
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const endOfDay = new Date();
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const paidOrders = await Order.find({
+      paymentStatus: "paid",
+      paidAt: {
+        $gte: startOfDay,
+        $lte: endOfDay
+      }
+    }).sort({ paidAt: -1 });
+
+    const unpaidOrders = await Order.find({
+      paymentStatus: {
+        $ne: "paid"
+      },
+      status: {
+        $ne: "cancelled"
+      }
+    });
+
+    const totalRevenue = paidOrders.reduce((sum, order) => {
+      return sum + order.totalAmount;
+    }, 0);
+
+    res.json({
+      success: true,
+      data: {
+        totalRevenue,
+        totalPaidOrders: paidOrders.length,
+        totalUnpaidOrders: unpaidOrders.length,
+        paidOrders
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Cannot get today report",
       error: error.message
     });
   }
