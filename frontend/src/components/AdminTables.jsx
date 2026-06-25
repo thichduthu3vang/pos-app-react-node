@@ -4,21 +4,52 @@ import api from "../api";
 import "./AdminTables.css";
 
 function AdminTables({ onTablesChanged }) {
+    const [branches, setBranches] = useState([]);
+    const [selectedBranchCode, setSelectedBranchCode] = useState("");
     const [tables, setTables] = useState([]);
     const [loading, setLoading] = useState(true);
     const [editingId, setEditingId] = useState(null);
     const [qrModal, setQrModal] = useState(null);
 
     const [form, setForm] = useState({
+        branchCode: "",
         name: "",
         area: "Khu chính",
         status: "available"
     });
 
-    const loadTables = async () => {
+    const loadBranches = async () => {
+        try {
+            const response = await api.get("/api/branches");
+            const activeBranches = (response.data.data || []).filter(
+                (branch) => branch.isActive
+            );
+
+            setBranches(activeBranches);
+
+            if (activeBranches.length > 0 && !selectedBranchCode) {
+                const firstBranchCode = activeBranches[0].code;
+
+                setSelectedBranchCode(firstBranchCode);
+                setForm((currentForm) => ({
+                    ...currentForm,
+                    branchCode: firstBranchCode
+                }));
+            }
+        } catch (error) {
+            console.error("Cannot load branches:", error);
+            alert("Không thể tải danh sách chi nhánh");
+        }
+    };
+
+    const loadTables = async (branchCode = selectedBranchCode) => {
         try {
             setLoading(true);
-            const response = await api.get("/api/tables");
+
+            const response = await api.get("/api/tables", {
+                params: branchCode ? { branchCode } : {}
+            });
+
             setTables(response.data.data || []);
         } catch (error) {
             console.error("Cannot load tables:", error);
@@ -29,15 +60,23 @@ function AdminTables({ onTablesChanged }) {
     };
 
     useEffect(() => {
-        loadTables();
+        loadBranches();
     }, []);
+
+    useEffect(() => {
+        if (selectedBranchCode) {
+            loadTables(selectedBranchCode);
+        }
+    }, [selectedBranchCode]);
 
     const resetForm = () => {
         setForm({
+            branchCode: selectedBranchCode || "",
             name: "",
             area: "Khu chính",
             status: "available"
         });
+
         setEditingId(null);
     };
 
@@ -45,6 +84,20 @@ function AdminTables({ onTablesChanged }) {
         setForm({
             ...form,
             [field]: value
+        });
+    };
+
+    const changeSelectedBranch = (branchCode) => {
+        const cleanBranchCode = branchCode || "";
+
+        setSelectedBranchCode(cleanBranchCode);
+        setEditingId(null);
+
+        setForm({
+            branchCode: cleanBranchCode,
+            name: "",
+            area: "Khu chính",
+            status: "available"
         });
     };
 
@@ -57,7 +110,12 @@ function AdminTables({ onTablesChanged }) {
     };
 
     const getOrderLink = (table) => {
-        return `${window.location.origin}/order/${table._id}`;
+        const publicUrl =
+            import.meta.env.VITE_PUBLIC_FRONTEND_URL || window.location.origin;
+
+        const branchCode = table.branchCode || selectedBranchCode;
+
+        return `${publicUrl}/qr/${branchCode}/${table._id}`;
     };
 
     const copyOrderLink = async (table) => {
@@ -65,7 +123,7 @@ function AdminTables({ onTablesChanged }) {
 
         try {
             await navigator.clipboard.writeText(link);
-            alert(`Đã copy link order của ${table.name}`);
+            alert(`Đã copy link QR order của ${table.name}`);
         } catch (error) {
             console.error("Cannot copy link:", error);
             alert(link);
@@ -129,8 +187,14 @@ function AdminTables({ onTablesChanged }) {
             }
 
             h2 {
-              margin: 0 0 18px;
+              margin: 0 0 8px;
               font-size: 22px;
+            }
+
+            h3 {
+              margin: 0 0 18px;
+              font-size: 16px;
+              color: #555;
             }
 
             img {
@@ -168,6 +232,7 @@ function AdminTables({ onTablesChanged }) {
           <div class="qr-print-card">
             <h1>POS Coffee</h1>
             <h2>${qrModal.table.name}</h2>
+            <h3>${qrModal.table.branchName || qrModal.table.branchCode || ""}</h3>
 
             <img src="${qrModal.qrDataUrl}" alt="QR Order" />
 
@@ -202,12 +267,18 @@ function AdminTables({ onTablesChanged }) {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
+        if (!form.branchCode) {
+            alert("Vui lòng chọn chi nhánh");
+            return;
+        }
+
         if (!form.name) {
             alert("Vui lòng nhập tên bàn");
             return;
         }
 
         const payload = {
+            branchCode: form.branchCode,
             name: form.name,
             area: form.area,
             status: form.status
@@ -223,7 +294,7 @@ function AdminTables({ onTablesChanged }) {
             }
 
             resetForm();
-            loadTables();
+            loadTables(selectedBranchCode);
 
             if (onTablesChanged) {
                 onTablesChanged();
@@ -238,6 +309,7 @@ function AdminTables({ onTablesChanged }) {
         setEditingId(table._id);
 
         setForm({
+            branchCode: table.branchCode || selectedBranchCode || "",
             name: table.name || "",
             area: table.area || "Khu chính",
             status: table.status || "available"
@@ -260,7 +332,7 @@ function AdminTables({ onTablesChanged }) {
             await api.delete(`/api/tables/${table._id}`);
             alert("Xóa bàn thành công");
 
-            loadTables();
+            loadTables(selectedBranchCode);
 
             if (onTablesChanged) {
                 onTablesChanged();
@@ -277,7 +349,7 @@ function AdminTables({ onTablesChanged }) {
                 status
             });
 
-            loadTables();
+            loadTables(selectedBranchCode);
 
             if (onTablesChanged) {
                 onTablesChanged();
@@ -288,141 +360,215 @@ function AdminTables({ onTablesChanged }) {
         }
     };
 
+    const selectedBranch = branches.find(
+        (branch) => branch.code === selectedBranchCode
+    );
+
     return (
         <section className="admin-tables-page">
             <div className="admin-tables-header">
                 <div>
                     <h2>Admin - Quản lý bàn</h2>
-                    <p>Thêm, sửa, xóa, đổi trạng thái bàn và tạo QR order cho từng bàn.</p>
+                    <p>Tạo bàn theo từng chi nhánh, tạo QR order riêng cho từng bàn.</p>
                 </div>
 
-                <button className="admin-tables-refresh" onClick={loadTables}>
+                <button
+                    className="admin-tables-refresh"
+                    onClick={() => loadTables(selectedBranchCode)}
+                >
                     Làm mới
                 </button>
             </div>
 
-            <div className="admin-tables-layout">
-                <form className="admin-table-form" onSubmit={handleSubmit}>
-                    <h3>{editingId ? "Sửa bàn" : "Thêm bàn mới"}</h3>
-
-                    <label>
-                        Tên bàn
-                        <input
-                            value={form.name}
-                            onChange={(e) => handleChange("name", e.target.value)}
-                            placeholder="Ví dụ: Bàn 1"
-                        />
-                    </label>
-
-                    <label>
-                        Khu vực
-                        <input
-                            value={form.area}
-                            onChange={(e) => handleChange("area", e.target.value)}
-                            placeholder="Ví dụ: Khu chính"
-                        />
-                    </label>
-
-                    <label>
-                        Trạng thái
-                        <select
-                            value={form.status}
-                            onChange={(e) => handleChange("status", e.target.value)}
-                        >
-                            <option value="available">Trống</option>
-                            <option value="occupied">Có khách</option>
-                            <option value="cleaning">Chờ dọn</option>
-                            <option value="reserved">Đã đặt</option>
-                        </select>
-                    </label>
-
-                    <div className="admin-table-form-actions">
-                        <button type="submit">
-                            {editingId ? "Lưu cập nhật" : "Thêm bàn"}
-                        </button>
-
-                        {editingId && (
-                            <button type="button" className="secondary" onClick={resetForm}>
-                                Hủy sửa
-                            </button>
-                        )}
-                    </div>
-                </form>
-
-                <div className="admin-table-list-card">
-                    <div className="admin-table-list-header">
-                        <h3>Danh sách bàn</h3>
-                        <span>{tables.length} bàn</span>
-                    </div>
-
-                    {loading ? (
-                        <div className="admin-table-empty">Đang tải bàn...</div>
-                    ) : tables.length === 0 ? (
-                        <div className="admin-table-empty">Chưa có bàn nào.</div>
-                    ) : (
-                        <div className="admin-table-grid">
-                            {tables.map((table) => (
-                                <div
-                                    className={`admin-table-card ${table.status}`}
-                                    key={table._id}
-                                >
-                                    <div className="admin-table-card-top">
-                                        <div>
-                                            <h4>{table.name}</h4>
-                                            <p>{table.area}</p>
-                                        </div>
-
-                                        <span>{getStatusText(table.status)}</span>
-                                    </div>
-
-                                    <div className="admin-table-quick-actions">
-                                        <button onClick={() => quickSetStatus(table, "available")}>
-                                            Trống
-                                        </button>
-
-                                        <button onClick={() => quickSetStatus(table, "cleaning")}>
-                                            Chờ dọn
-                                        </button>
-
-                                        <button onClick={() => quickSetStatus(table, "reserved")}>
-                                            Đã đặt
-                                        </button>
-                                    </div>
-
-                                    <div className="admin-table-link">
-                                        <input value={getOrderLink(table)} readOnly />
-
-                                        <button onClick={() => copyOrderLink(table)}>
-                                            Copy
-                                        </button>
-                                    </div>
-
-                                    <div className="admin-table-qr-actions">
-                                        <button onClick={() => openQrModal(table)}>
-                                            Xem QR
-                                        </button>
-
-                                        <button onClick={() => copyOrderLink(table)}>
-                                            Copy link
-                                        </button>
-                                    </div>
-
-                                    <div className="admin-table-actions">
-                                        <button onClick={() => startEdit(table)}>Sửa</button>
-
-                                        <button
-                                            className="danger"
-                                            onClick={() => deleteTable(table)}
-                                        >
-                                            Xóa
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
+            {branches.length === 0 ? (
+                <div className="admin-table-empty">
+                    Chưa có chi nhánh hoạt động. Hãy vào Admin chi nhánh để tạo chi nhánh
+                    trước.
                 </div>
-            </div>
+            ) : (
+                <>
+                    <div className="admin-branch-filter-card">
+                        <div>
+                            <h3>Chi nhánh đang quản lý</h3>
+                            <p>
+                                {selectedBranch
+                                    ? `${selectedBranch.name} - ${selectedBranch.code}`
+                                    : "Chưa chọn chi nhánh"}
+                            </p>
+                        </div>
+
+                        <select
+                            value={selectedBranchCode}
+                            onChange={(e) => changeSelectedBranch(e.target.value)}
+                        >
+                            {branches.map((branch) => (
+                                <option key={branch._id} value={branch.code}>
+                                    {branch.name} - {branch.code}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div className="admin-tables-layout">
+                        <form className="admin-table-form" onSubmit={handleSubmit}>
+                            <h3>{editingId ? "Sửa bàn" : "Thêm bàn mới"}</h3>
+
+                            <label>
+                                Chi nhánh
+                                <select
+                                    value={form.branchCode}
+                                    onChange={(e) => changeSelectedBranch(e.target.value)}
+                                >
+                                    <option value="">Chọn chi nhánh</option>
+
+                                    {branches.map((branch) => (
+                                        <option key={branch._id} value={branch.code}>
+                                            {branch.name} - {branch.code}
+                                        </option>
+                                    ))}
+                                </select>
+                            </label>
+
+                            <label>
+                                Tên bàn
+                                <input
+                                    value={form.name}
+                                    onChange={(e) => handleChange("name", e.target.value)}
+                                    placeholder="Ví dụ: Bàn 1"
+                                />
+                            </label>
+
+                            <label>
+                                Khu vực
+                                <input
+                                    value={form.area}
+                                    onChange={(e) => handleChange("area", e.target.value)}
+                                    placeholder="Ví dụ: Tầng 1 / Sân vườn"
+                                />
+                            </label>
+
+                            <label>
+                                Trạng thái
+                                <select
+                                    value={form.status}
+                                    onChange={(e) => handleChange("status", e.target.value)}
+                                >
+                                    <option value="available">Trống</option>
+                                    <option value="occupied">Có khách</option>
+                                    <option value="cleaning">Chờ dọn</option>
+                                    <option value="reserved">Đã đặt</option>
+                                </select>
+                            </label>
+
+                            <div className="admin-table-form-actions">
+                                <button type="submit">
+                                    {editingId ? "Lưu cập nhật" : "Thêm bàn"}
+                                </button>
+
+                                {editingId && (
+                                    <button
+                                        type="button"
+                                        className="secondary"
+                                        onClick={resetForm}
+                                    >
+                                        Hủy sửa
+                                    </button>
+                                )}
+                            </div>
+                        </form>
+
+                        <div className="admin-table-list-card">
+                            <div className="admin-table-list-header">
+                                <h3>Danh sách bàn</h3>
+                                <span>{tables.length} bàn</span>
+                            </div>
+
+                            {loading ? (
+                                <div className="admin-table-empty">Đang tải bàn...</div>
+                            ) : tables.length === 0 ? (
+                                <div className="admin-table-empty">
+                                    Chi nhánh này chưa có bàn nào.
+                                </div>
+                            ) : (
+                                <div className="admin-table-grid">
+                                    {tables.map((table) => (
+                                        <div
+                                            className={`admin-table-card ${table.status}`}
+                                            key={table._id}
+                                        >
+                                            <div className="admin-table-card-top">
+                                                <div>
+                                                    <h4>{table.name}</h4>
+                                                    <p>{table.area}</p>
+                                                    <p>
+                                                        Chi nhánh:{" "}
+                                                        <strong>
+                                                            {table.branchName ||
+                                                                table.branchCode ||
+                                                                "Chưa gán"}
+                                                        </strong>
+                                                    </p>
+                                                </div>
+
+                                                <span>{getStatusText(table.status)}</span>
+                                            </div>
+
+                                            <div className="admin-table-quick-actions">
+                                                <button
+                                                    onClick={() => quickSetStatus(table, "available")}
+                                                >
+                                                    Trống
+                                                </button>
+
+                                                <button
+                                                    onClick={() => quickSetStatus(table, "cleaning")}
+                                                >
+                                                    Chờ dọn
+                                                </button>
+
+                                                <button
+                                                    onClick={() => quickSetStatus(table, "reserved")}
+                                                >
+                                                    Đã đặt
+                                                </button>
+                                            </div>
+
+                                            <div className="admin-table-link">
+                                                <input value={getOrderLink(table)} readOnly />
+
+                                                <button onClick={() => copyOrderLink(table)}>
+                                                    Copy
+                                                </button>
+                                            </div>
+
+                                            <div className="admin-table-qr-actions">
+                                                <button onClick={() => openQrModal(table)}>
+                                                    Xem QR
+                                                </button>
+
+                                                <button onClick={() => copyOrderLink(table)}>
+                                                    Copy link
+                                                </button>
+                                            </div>
+
+                                            <div className="admin-table-actions">
+                                                <button onClick={() => startEdit(table)}>Sửa</button>
+
+                                                <button
+                                                    className="danger"
+                                                    onClick={() => deleteTable(table)}
+                                                >
+                                                    Xóa
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </>
+            )}
 
             {qrModal && (
                 <div className="qr-modal-overlay">
@@ -430,7 +576,10 @@ function AdminTables({ onTablesChanged }) {
                         <div className="qr-modal-header">
                             <div>
                                 <h3>QR Order - {qrModal.table.name}</h3>
-                                <p>Khách quét mã này để gọi món tại bàn.</p>
+                                <p>
+                                    {qrModal.table.branchName || qrModal.table.branchCode} - Khách
+                                    quét mã này để gọi món tại bàn.
+                                </p>
                             </div>
 
                             <button onClick={() => setQrModal(null)}>Đóng</button>
@@ -439,6 +588,10 @@ function AdminTables({ onTablesChanged }) {
                         <div className="qr-preview-card">
                             <h2>POS Coffee</h2>
                             <h3>{qrModal.table.name}</h3>
+
+                            <p className="qr-branch-name">
+                                {qrModal.table.branchName || qrModal.table.branchCode}
+                            </p>
 
                             <img src={qrModal.qrDataUrl} alt="QR Order" />
 
@@ -452,9 +605,7 @@ function AdminTables({ onTablesChanged }) {
                                 Copy link
                             </button>
 
-                            <button onClick={printQr}>
-                                In QR
-                            </button>
+                            <button onClick={printQr}>In QR</button>
 
                             <button className="secondary" onClick={() => setQrModal(null)}>
                                 Đóng

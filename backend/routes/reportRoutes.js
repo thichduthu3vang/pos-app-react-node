@@ -3,42 +3,65 @@ import Order from "../models/Order.js";
 
 const router = express.Router();
 
+const getDateRange = (startDate, endDate) => {
+    const start = startDate ? new Date(startDate) : new Date();
+    const end = endDate ? new Date(endDate) : new Date();
+
+    start.setHours(0, 0, 0, 0);
+    end.setHours(23, 59, 59, 999);
+
+    return { start, end };
+};
+
+const getBranchFilter = (branchCode) => {
+    if (!branchCode) return {};
+
+    return {
+        branchCode: branchCode.trim().toUpperCase()
+    };
+};
+
 router.get("/today", async (req, res) => {
     try {
-        const startOfDay = new Date();
-        startOfDay.setHours(0, 0, 0, 0);
+        const { branchCode } = req.query;
 
-        const endOfDay = new Date();
-        endOfDay.setHours(23, 59, 59, 999);
+        const { start, end } = getDateRange();
 
-        const paidOrders = await Order.find({
-            paymentStatus: "paid",
-            paidAt: {
-                $gte: startOfDay,
-                $lte: endOfDay
-            }
-        }).sort({ paidAt: -1 });
-
-        const unpaidOrders = await Order.find({
-            paymentStatus: {
-                $ne: "paid"
+        const baseFilter = {
+            createdAt: {
+                $gte: start,
+                $lte: end
             },
-            status: {
-                $ne: "cancelled"
-            }
-        });
+            ...getBranchFilter(branchCode)
+        };
+
+        const paidFilter = {
+            ...baseFilter,
+            paymentStatus: "paid",
+            status: { $ne: "cancelled" }
+        };
+
+        const unpaidFilter = {
+            ...baseFilter,
+            paymentStatus: "unpaid",
+            status: { $ne: "cancelled" }
+        };
+
+        const paidOrders = await Order.find(paidFilter);
+        const unpaidOrders = await Order.find(unpaidFilter);
 
         const totalRevenue = paidOrders.reduce((sum, order) => {
-            return sum + order.totalAmount;
+            return sum + Number(order.totalAmount || 0);
         }, 0);
 
         res.json({
             success: true,
             data: {
+                branchCode: branchCode ? branchCode.trim().toUpperCase() : "",
                 totalRevenue,
                 totalPaidOrders: paidOrders.length,
                 totalUnpaidOrders: unpaidOrders.length,
-                paidOrders
+                totalOrders: paidOrders.length + unpaidOrders.length
             }
         });
     } catch (error) {
@@ -52,101 +75,137 @@ router.get("/today", async (req, res) => {
 
 router.get("/summary", async (req, res) => {
     try {
-        const { from, to } = req.query;
+        const { startDate, endDate, branchCode } = req.query;
 
-        const startDate = from ? new Date(from) : new Date();
-        startDate.setHours(0, 0, 0, 0);
+        const { start, end } = getDateRange(startDate, endDate);
 
-        const endDate = to ? new Date(to) : new Date();
-        endDate.setHours(23, 59, 59, 999);
-
-        const paidOrders = await Order.find({
-            paymentStatus: "paid",
-            paidAt: {
-                $gte: startDate,
-                $lte: endDate
-            }
-        }).sort({ paidAt: -1 });
-
-        const createdOrders = await Order.find({
+        const baseFilter = {
             createdAt: {
-                $gte: startDate,
-                $lte: endDate
-            }
-        }).sort({ createdAt: -1 });
-
-        const unpaidOrders = createdOrders.filter((order) => {
-            return order.paymentStatus !== "paid" && order.status !== "cancelled";
-        });
-
-        const cancelledOrders = createdOrders.filter((order) => {
-            return order.status === "cancelled";
-        });
-
-        const totalRevenue = paidOrders.reduce((sum, order) => {
-            return sum + order.totalAmount;
-        }, 0);
-
-        const paymentMethods = {
-            cash: 0,
-            bank: 0,
-            card: 0,
-            momo: 0,
-            zalopay: 0
+                $gte: start,
+                $lte: end
+            },
+            ...getBranchFilter(branchCode)
         };
 
-        paidOrders.forEach((order) => {
-            const method = order.paymentMethod || "cash";
+        const orders = await Order.find(baseFilter).sort({ createdAt: -1 });
 
-            if (!paymentMethods[method]) {
-                paymentMethods[method] = 0;
+        const paidOrders = orders.filter(
+            (order) => order.paymentStatus === "paid" && order.status !== "cancelled"
+        );
+
+        const unpaidOrders = orders.filter(
+            (order) =>
+                order.paymentStatus === "unpaid" && order.status !== "cancelled"
+        );
+
+        const cancelledOrders = orders.filter(
+            (order) => order.status === "cancelled"
+        );
+
+        const totalRevenue = paidOrders.reduce((sum, order) => {
+            return sum + Number(order.totalAmount || 0);
+        }, 0);
+
+        const averageOrderValue =
+            paidOrders.length > 0 ? Math.round(totalRevenue / paidOrders.length) : 0;
+
+        const revenueByDayMap = {};
+
+        paidOrders.forEach((order) => {
+            const day = order.createdAt.toISOString().slice(0, 10);
+
+            if (!revenueByDayMap[day]) {
+                revenueByDayMap[day] = {
+                    date: day,
+                    revenue: 0,
+                    orders: 0
+                };
             }
 
-            paymentMethods[method] += order.totalAmount;
+            revenueByDayMap[day].revenue += Number(order.totalAmount || 0);
+            revenueByDayMap[day].orders += 1;
         });
 
-        const dailyRevenueMap = {};
-
-        paidOrders.forEach((order) => {
-            const key = order.paidAt
-                ? order.paidAt.toISOString().slice(0, 10)
-                : "unknown";
-
-            if (!dailyRevenueMap[key]) {
-                dailyRevenueMap[key] = 0;
-            }
-
-            dailyRevenueMap[key] += order.totalAmount;
-        });
-
-        const dailyRevenue = Object.keys(dailyRevenueMap)
-            .sort()
-            .map((date) => ({
-                date,
-                revenue: dailyRevenueMap[date]
-            }));
+        const revenueByDay = Object.values(revenueByDayMap).sort((a, b) =>
+            a.date.localeCompare(b.date)
+        );
 
         res.json({
             success: true,
             data: {
-                from: startDate,
-                to: endDate,
+                branchCode: branchCode ? branchCode.trim().toUpperCase() : "",
+                startDate: start,
+                endDate: end,
+                totalOrders: orders.length,
                 totalRevenue,
                 totalPaidOrders: paidOrders.length,
-                totalCreatedOrders: createdOrders.length,
                 totalUnpaidOrders: unpaidOrders.length,
                 totalCancelledOrders: cancelledOrders.length,
-                paymentMethods,
-                dailyRevenue,
-                paidOrders,
-                unpaidOrders,
-                cancelledOrders
+                averageOrderValue,
+                revenueByDay,
+                orders
             }
         });
     } catch (error) {
         res.status(500).json({
             success: false,
             message: "Cannot get report summary",
+            error: error.message
+        });
+    }
+});
+
+router.get("/branches/today", async (req, res) => {
+    try {
+        const { start, end } = getDateRange();
+
+        const orders = await Order.find({
+            createdAt: {
+                $gte: start,
+                $lte: end
+            },
+            paymentStatus: "paid",
+            status: { $ne: "cancelled" },
+            branchCode: { $ne: "" }
+        });
+
+        const branchMap = {};
+
+        orders.forEach((order) => {
+            const code = order.branchCode || "UNKNOWN";
+
+            if (!branchMap[code]) {
+                branchMap[code] = {
+                    branchCode: code,
+                    branchName: order.branchName || code,
+                    totalRevenue: 0,
+                    totalPaidOrders: 0
+                };
+            }
+
+            branchMap[code].totalRevenue += Number(order.totalAmount || 0);
+            branchMap[code].totalPaidOrders += 1;
+        });
+
+        const branches = Object.values(branchMap).sort(
+            (a, b) => b.totalRevenue - a.totalRevenue
+        );
+
+        const totalRevenue = branches.reduce((sum, branch) => {
+            return sum + branch.totalRevenue;
+        }, 0);
+
+        res.json({
+            success: true,
+            data: {
+                totalRevenue,
+                branches
+            }
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: "Cannot get branch today report",
             error: error.message
         });
     }

@@ -15,6 +15,20 @@ const orderItemSchema = new mongoose.Schema(
 
 const orderSchema = new mongoose.Schema(
     {
+        branchId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Branch",
+            default: null
+        },
+        branchCode: {
+            type: String,
+            default: ""
+        },
+        branchName: {
+            type: String,
+            default: ""
+        },
+
         tableId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Table",
@@ -28,20 +42,21 @@ const orderSchema = new mongoose.Schema(
             type: String,
             default: ""
         },
+
         items: [orderItemSchema],
+
         totalAmount: {
             type: Number,
             default: 0
         },
+
         paymentMethod: {
             type: String,
             default: "cash"
-            // cash, bank, card, momo, zalopay
         },
         paymentStatus: {
             type: String,
             default: "unpaid"
-            // unpaid, paid
         },
         paidAt: {
             type: Date,
@@ -50,7 +65,6 @@ const orderSchema = new mongoose.Schema(
         status: {
             type: String,
             default: "pending"
-            // pending, preparing, completed, cancelled
         }
     },
     { timestamps: true }

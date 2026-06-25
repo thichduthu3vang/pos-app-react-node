@@ -1,0 +1,143 @@
+.branch-select-page {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #21170f, #8b5a2b);
+    padding: 28px;
+    display: grid;
+    place-items: center;
+}
+
+.branch-select-card {
+    width: min(980px, 100%);
+    background: #fffaf3;
+    border: 1px solid #ead9c7;
+    border-radius: 30px;
+    padding: 28px;
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.28);
+}
+
+.branch-select-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.branch-logo {
+    width: 58px;
+    height: 58px;
+    background: #21170f;
+    color: white;
+    border-radius: 18px;
+    display: grid;
+    place-items: center;
+    font-size: 30px;
+}
+
+.branch-select-header h1 {
+    margin: 0;
+    font-size: 36px;
+    color: #21170f;
+}
+
+.branch-select-header p {
+    margin: 6px 0 0;
+    color: #7b6b5c;
+}
+
+.branch-warning {
+    background: #fff1d6;
+    border: 1px solid #f2c36b;
+    color: #7a4d00;
+    padding: 14px 16px;
+    border-radius: 16px;
+    margin-bottom: 20px;
+    font-weight: 800;
+}
+
+.branch-empty {
+    border: 1px dashed #d8c1aa;
+    border-radius: 20px;
+    padding: 34px;
+    text-align: center;
+    color: #7b6b5c;
+    font-weight: 800;
+}
+
+.branch-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+}
+
+.branch-card {
+    background: white;
+    border: 1px solid #ead9c7;
+    border-radius: 22px;
+    padding: 20px;
+    text-decoration: none;
+    color: #21170f;
+    transition: 0.2s ease;
+}
+
+.branch-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 16px 34px rgba(80, 52, 27, 0.16);
+}
+
+.branch-code {
+    display: inline-block;
+    background: #21170f;
+    color: white;
+    padding: 7px 11px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 900;
+    margin-bottom: 14px;
+}
+
+.branch-card h2 {
+    margin: 0 0 8px;
+    font-size: 24px;
+}
+
+.branch-card p {
+    margin: 0 0 18px;
+    color: #7b6b5c;
+    min-height: 36px;
+}
+
+.branch-card strong {
+    color: #137f3f;
+}
+
+.branch-footer-actions {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 24px;
+    flex-wrap: wrap;
+}
+
+.branch-footer-actions a {
+    background: #21170f;
+    color: white;
+    text-decoration: none;
+    padding: 12px 16px;
+    border-radius: 14px;
+    font-weight: 900;
+}
+
+@media (max-width: 700px) {
+    .branch-select-page {
+        padding: 14px;
+    }
+
+    .branch-select-card {
+        padding: 18px;
+        border-radius: 24px;
+    }
+
+    .branch-select-header h1 {
+        font-size: 28px;
+    }
+}

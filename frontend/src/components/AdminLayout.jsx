@@ -1,11 +1,12 @@
 import { NavLink, Navigate, Route, Routes } from "react-router-dom";
+import AdminBranches from "./AdminBranches";
 import AdminMenu from "./AdminMenu";
 import AdminTables from "./AdminTables";
 import AdminOrders from "./AdminOrders";
 import AdminReports from "./AdminReports";
 import "./AdminLayout.css";
 
-function AdminLayout({ onMenuChanged, onTablesChanged, onOrdersChanged }) {
+function AdminLayout() {
     const adminEmail = localStorage.getItem("adminEmail");
 
     const logout = () => {
@@ -31,6 +32,7 @@ function AdminLayout({ onMenuChanged, onTablesChanged, onOrdersChanged }) {
                 </div>
 
                 <div className="admin-nav">
+                    <NavLink to="/admin/chi-nhanh">Admin chi nhánh</NavLink>
                     <NavLink to="/admin/menu">Admin menu</NavLink>
                     <NavLink to="/admin/tables">Admin bàn</NavLink>
                     <NavLink to="/admin/orders">Admin đơn hàng</NavLink>
@@ -45,22 +47,18 @@ function AdminLayout({ onMenuChanged, onTablesChanged, onOrdersChanged }) {
 
             <main className="main">
                 <Routes>
-                    <Route index element={<Navigate to="/admin/menu" replace />} />
+                    <Route index element={<Navigate to="/admin/chi-nhanh" replace />} />
 
-                    <Route
-                        path="menu"
-                        element={<AdminMenu onMenuChanged={onMenuChanged} />}
-                    />
+                    <Route path="chi-nhanh" element={<AdminBranches />} />
 
-                    <Route
-                        path="tables"
-                        element={<AdminTables onTablesChanged={onTablesChanged} />}
-                    />
+                    {/* Route cũ, giữ để ai lỡ vào /admin/branches vẫn không lỗi */}
+                    <Route path="branches" element={<Navigate to="/admin/chi-nhanh" replace />} />
 
-                    <Route
-                        path="orders"
-                        element={<AdminOrders onOrdersChanged={onOrdersChanged} />}
-                    />
+                    <Route path="menu" element={<AdminMenu />} />
+
+                    <Route path="tables" element={<AdminTables />} />
+
+                    <Route path="orders" element={<AdminOrders />} />
 
                     <Route path="reports" element={<AdminReports />} />
                 </Routes>

@@ -1,9 +1,20 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import api from "../api";
 import InvoiceModal from "../components/pos/InvoiceModal";
+import BranchSelectPage from "./BranchSelectPage";
 
 function POSPage() {
+    const { branchCode } = useParams();
+
+    const normalizedBranchCode = branchCode ? branchCode.toUpperCase() : "";
+
+    const [branchChecking, setBranchChecking] = useState(
+        Boolean(normalizedBranchCode)
+    );
+    const [branchNotFound, setBranchNotFound] = useState(false);
+    const [currentBranch, setCurrentBranch] = useState(null);
+
     const [menuItems, setMenuItems] = useState([]);
     const [orders, setOrders] = useState([]);
     const [cart, setCart] = useState([]);
@@ -21,6 +32,49 @@ function POSPage() {
         totalUnpaidOrders: 0
     });
 
+    const branchLabel = currentBranch
+        ? `${currentBranch.name} - ${currentBranch.code}`
+        : normalizedBranchCode
+            ? `Chi nhánh ${normalizedBranchCode}`
+            : "POS tổng";
+
+    const loadCurrentBranch = async () => {
+        if (!normalizedBranchCode) {
+            setCurrentBranch(null);
+            setBranchNotFound(false);
+            return true;
+        }
+
+        try {
+            setBranchChecking(true);
+
+            const response = await api.get("/api/branches");
+            const branches = response.data.data || [];
+
+            const foundBranch = branches.find(
+                (branch) =>
+                    branch.code === normalizedBranchCode && branch.isActive === true
+            );
+
+            if (!foundBranch) {
+                setCurrentBranch(null);
+                setBranchNotFound(true);
+                return false;
+            }
+
+            setCurrentBranch(foundBranch);
+            setBranchNotFound(false);
+            return true;
+        } catch (error) {
+            console.error("Cannot load current branch:", error);
+            setCurrentBranch(null);
+            setBranchNotFound(true);
+            return false;
+        } finally {
+            setBranchChecking(false);
+        }
+    };
+
     const loadMenu = async () => {
         try {
             setLoading(true);
@@ -35,7 +89,10 @@ function POSPage() {
 
     const loadOrders = async () => {
         try {
-            const response = await api.get("/api/orders");
+            const response = await api.get("/api/orders", {
+                params: normalizedBranchCode ? { branchCode: normalizedBranchCode } : {}
+            });
+
             setOrders(response.data.data || []);
         } catch (error) {
             console.error("Cannot load orders:", error);
@@ -44,7 +101,10 @@ function POSPage() {
 
     const loadTables = async () => {
         try {
-            const response = await api.get("/api/tables");
+            const response = await api.get("/api/tables", {
+                params: normalizedBranchCode ? { branchCode: normalizedBranchCode } : {}
+            });
+
             setTables(response.data.data || []);
         } catch (error) {
             console.error("Cannot load tables:", error);
@@ -53,7 +113,9 @@ function POSPage() {
 
     const loadTodayReport = async () => {
         try {
-            const response = await api.get("/api/reports/today");
+            const response = await api.get("/api/reports/today", {
+                params: normalizedBranchCode ? { branchCode: normalizedBranchCode } : {}
+            });
 
             setTodayReport(
                 response.data.data || {
@@ -67,7 +129,22 @@ function POSPage() {
         }
     };
 
-    const reloadDashboardData = () => {
+    const reloadDashboardData = async () => {
+        const isValidBranch = await loadCurrentBranch();
+
+        if (!isValidBranch) {
+            setMenuItems([]);
+            setOrders([]);
+            setTables([]);
+            setTodayReport({
+                totalRevenue: 0,
+                totalPaidOrders: 0,
+                totalUnpaidOrders: 0
+            });
+            setLoading(false);
+            return;
+        }
+
         loadMenu();
         loadOrders();
         loadTables();
@@ -75,8 +152,11 @@ function POSPage() {
     };
 
     useEffect(() => {
+        setSelectedTableId("");
+        setCart([]);
+        setTableName("Takeaway");
         reloadDashboardData();
-    }, []);
+    }, [normalizedBranchCode]);
 
     const categories = useMemo(() => {
         const list = menuItems.map((item) => item.category);
@@ -183,6 +263,7 @@ function POSPage() {
 
         try {
             await api.post("/api/orders", {
+                branchCode: normalizedBranchCode || selectedTable?.branchCode || "",
                 tableId: selectedTableId || null,
                 tableName: selectedTable ? selectedTable.name : tableName,
                 customerName,
@@ -208,10 +289,7 @@ function POSPage() {
 
     const updateOrderStatus = async (orderId, status) => {
         try {
-            await api.patch(`/api/orders/${orderId}/status`, {
-                status
-            });
-
+            await api.patch(`/api/orders/${orderId}/status`, { status });
             loadOrders();
             loadTables();
             loadTodayReport();
@@ -223,10 +301,7 @@ function POSPage() {
 
     const updateTableStatus = async (tableId, status) => {
         try {
-            await api.patch(`/api/tables/${tableId}/status`, {
-                status
-            });
-
+            await api.patch(`/api/tables/${tableId}/status`, { status });
             loadTables();
         } catch (error) {
             console.error("Cannot update table status:", error);
@@ -236,12 +311,8 @@ function POSPage() {
 
     const payOrder = async (orderId, paymentMethod) => {
         try {
-            await api.patch(`/api/orders/${orderId}/pay`, {
-                paymentMethod
-            });
-
+            await api.patch(`/api/orders/${orderId}/pay`, { paymentMethod });
             alert("Thanh toán thành công");
-
             loadOrders();
             loadTables();
             loadTodayReport();
@@ -250,6 +321,24 @@ function POSPage() {
             alert(error.response?.data?.message || "Không thể thanh toán đơn");
         }
     };
+
+    if (branchChecking) {
+        return (
+            <div className="branch-select-page">
+                <div className="branch-select-card">
+                    <div className="branch-empty">Đang kiểm tra chi nhánh...</div>
+                </div>
+            </div>
+        );
+    }
+
+    if (branchNotFound) {
+        return (
+            <BranchSelectPage
+                message={`Chi nhánh ${normalizedBranchCode} không tồn tại hoặc đang tạm tắt. Vui lòng chọn chi nhánh hợp lệ.`}
+            />
+        );
+    }
 
     return (
         <div className="app">
@@ -263,11 +352,19 @@ function POSPage() {
                 </div>
 
                 <div className="side-nav">
-                    <Link className="active" to="/">
+                    <Link
+                        className="active"
+                        to={normalizedBranchCode ? `/pos/${normalizedBranchCode}` : "/"}
+                    >
                         POS bán hàng
                     </Link>
 
                     <Link to="/admin">Trang Admin</Link>
+                </div>
+
+                <div className="sidebar-box">
+                    <span className="label">Chi nhánh</span>
+                    <strong>{branchLabel}</strong>
                 </div>
 
                 <div className="sidebar-box">
@@ -306,8 +403,15 @@ function POSPage() {
             <main className="main">
                 <section className="topbar">
                     <div>
-                        <h2>Menu đồ uống</h2>
-                        <p>Chọn bàn, chọn món, thêm ghi chú và tạo order cho khách.</p>
+                        <h2>
+                            Menu đồ uống {normalizedBranchCode ? `- ${branchLabel}` : ""}
+                        </h2>
+
+                        <p>
+                            {normalizedBranchCode
+                                ? `Bạn đang bán hàng tại ${branchLabel}.`
+                                : "Bạn đang ở POS tổng. Vào /pos/DN01 hoặc /pos/HA01 để bán theo từng chi nhánh."}
+                        </p>
                     </div>
 
                     <button className="refresh-button" onClick={reloadDashboardData}>
@@ -319,7 +423,11 @@ function POSPage() {
                     <div className="section-heading">
                         <div>
                             <h2>Sơ đồ bàn</h2>
-                            <p>Chọn bàn trước khi tạo order.</p>
+                            <p>
+                                {normalizedBranchCode
+                                    ? `Danh sách bàn của ${branchLabel}.`
+                                    : "Chọn bàn trước khi tạo order."}
+                            </p>
                         </div>
 
                         <button className="refresh-button small" onClick={loadTables}>
@@ -352,8 +460,11 @@ function POSPage() {
                                 <button
                                     className="table-main-button"
                                     onClick={() => {
-                                        if (table.status !== "available") {
-                                            alert(`${table.name} hiện không trống`);
+                                        if (
+                                            table.status === "cleaning" ||
+                                            table.status === "reserved"
+                                        ) {
+                                            alert(`${table.name} hiện chưa thể nhận order`);
                                             return;
                                         }
 
@@ -362,25 +473,33 @@ function POSPage() {
                                 >
                                     <strong>{table.name}</strong>
                                     <span>{table.area}</span>
+
+                                    {table.branchCode && (
+                                        <small>{table.branchName || table.branchCode}</small>
+                                    )}
+
                                     <em>{getTableStatusText(table.status)}</em>
                                 </button>
 
                                 <div className="table-actions">
-                                    <button
-                                        onClick={() => updateTableStatus(table._id, "available")}
-                                    >
+                                    <button onClick={() => updateTableStatus(table._id, "available")}>
                                         Trống
                                     </button>
 
-                                    <button
-                                        onClick={() => updateTableStatus(table._id, "cleaning")}
-                                    >
+                                    <button onClick={() => updateTableStatus(table._id, "cleaning")}>
                                         Chờ dọn
                                     </button>
                                 </div>
                             </div>
                         ))}
                     </div>
+
+                    {normalizedBranchCode && tables.length === 0 && (
+                        <div className="empty-box">
+                            Chi nhánh {normalizedBranchCode} chưa có bàn nào. Hãy vào Admin bàn
+                            để tạo bàn cho chi nhánh này.
+                        </div>
+                    )}
                 </section>
 
                 <section className="content-layout">
@@ -445,6 +564,10 @@ function POSPage() {
                     <aside className="order-panel">
                         <div className="panel-card">
                             <h2>Đơn hiện tại</h2>
+
+                            <div className="selected-table-note">
+                                Chi nhánh: <strong>{branchLabel}</strong>
+                            </div>
 
                             <div className="selected-table-note">
                                 Đang chọn:{" "}
@@ -540,6 +663,12 @@ function POSPage() {
                                             </span>
                                         </div>
 
+                                        {order.branchCode && (
+                                            <p className="order-customer">
+                                                Chi nhánh: {order.branchName || order.branchCode}
+                                            </p>
+                                        )}
+
                                         <p className="order-customer">
                                             Khách: {order.customerName || "Không có"}
                                         </p>
@@ -566,7 +695,7 @@ function POSPage() {
 
                                         <div className="order-footer">
                                             <strong>
-                                                {order.totalAmount.toLocaleString("vi-VN")}đ
+                                                {(order.totalAmount || 0).toLocaleString("vi-VN")}đ
                                             </strong>
                                         </div>
 

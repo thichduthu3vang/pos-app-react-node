@@ -1,0 +1,227 @@
+.admin-branches-page {
+    min-height: 100vh;
+}
+
+.admin-branches-header {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 22px;
+    margin-bottom: 24px;
+    box-shadow: 0 14px 35px rgba(80, 52, 27, 0.08);
+    display: flex;
+    justify-content: space-between;
+    gap: 18px;
+    align-items: center;
+}
+
+.admin-branches-header h2 {
+    margin: 0;
+    font-size: 32px;
+}
+
+.admin-branches-header p {
+    margin: 8px 0 0;
+    color: var(--muted);
+}
+
+.admin-branches-refresh {
+    background: var(--primary);
+    color: white;
+    padding: 12px 18px;
+    border-radius: 14px;
+    font-weight: 800;
+}
+
+.admin-branches-layout {
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    gap: 24px;
+    align-items: start;
+}
+
+.admin-branch-form,
+.admin-branch-list-card {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 20px;
+    box-shadow: 0 14px 35px rgba(80, 52, 27, 0.08);
+}
+
+.admin-branch-form {
+    position: sticky;
+    top: 24px;
+}
+
+.admin-branch-form h3,
+.admin-branch-list-card h3 {
+    margin: 0 0 18px;
+    font-size: 24px;
+}
+
+.admin-branch-form label {
+    display: block;
+    margin-bottom: 14px;
+    color: var(--muted);
+    font-weight: 700;
+    font-size: 14px;
+}
+
+.admin-branch-form input {
+    width: 100%;
+    margin-top: 7px;
+    border: 1px solid var(--border);
+    background: var(--soft);
+    padding: 12px 13px;
+    border-radius: 14px;
+    outline: none;
+    color: var(--text);
+}
+
+.admin-branch-form input:focus {
+    border-color: var(--primary);
+    background: white;
+}
+
+.admin-branch-checkbox {
+    display: flex !important;
+    gap: 10px;
+    align-items: center;
+}
+
+.admin-branch-checkbox input {
+    width: auto;
+    margin: 0;
+}
+
+.admin-branch-actions {
+    display: grid;
+    gap: 10px;
+}
+
+.admin-branch-actions button {
+    background: var(--green);
+    color: white;
+    padding: 13px;
+    border-radius: 14px;
+    font-weight: 900;
+}
+
+.admin-branch-actions button.secondary {
+    background: #21170f;
+}
+
+.admin-branch-list-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 14px;
+    align-items: center;
+    margin-bottom: 14px;
+}
+
+.admin-branch-list-header h3 {
+    margin: 0;
+}
+
+.admin-branch-list-header span {
+    background: var(--soft);
+    border: 1px solid var(--border);
+    color: var(--primary-dark);
+    padding: 8px 12px;
+    border-radius: 999px;
+    font-weight: 900;
+}
+
+.admin-branch-empty {
+    border: 1px dashed var(--border);
+    border-radius: 18px;
+    padding: 34px;
+    text-align: center;
+    color: var(--muted);
+}
+
+.admin-branch-list {
+    display: grid;
+    gap: 14px;
+}
+
+.admin-branch-item {
+    background: var(--soft);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 16px;
+    display: grid;
+    grid-template-columns: 1fr 160px;
+    gap: 16px;
+}
+
+.admin-branch-item h4 {
+    margin: 0 0 8px;
+    font-size: 22px;
+}
+
+.admin-branch-item p {
+    margin: 5px 0;
+    color: var(--muted);
+}
+
+.admin-branch-side {
+    display: grid;
+    gap: 8px;
+    align-content: start;
+}
+
+.branch-status {
+    text-align: center;
+    padding: 8px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 900;
+}
+
+.branch-status.active {
+    background: #ddf7e8;
+    color: var(--green);
+}
+
+.branch-status.inactive {
+    background: #ffe6e3;
+    color: var(--red);
+}
+
+.admin-branch-side button {
+    background: white;
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px;
+    border-radius: 12px;
+    font-weight: 900;
+}
+
+.admin-branch-side button.danger {
+    background: var(--red);
+    color: white;
+    border-color: var(--red);
+}
+
+@media (max-width: 1100px) {
+    .admin-branches-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-branch-form {
+        position: static;
+    }
+}
+
+@media (max-width: 700px) {
+    .admin-branches-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .admin-branch-item {
+        grid-template-columns: 1fr;
+    }
+}

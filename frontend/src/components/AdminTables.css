@@ -411,3 +411,54 @@
         height: 220px;
     }
 }
+
+.admin-branch-filter-card {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 18px 20px;
+    margin-bottom: 24px;
+    box-shadow: 0 14px 35px rgba(80, 52, 27, 0.08);
+    display: flex;
+    justify-content: space-between;
+    gap: 18px;
+    align-items: center;
+}
+
+.admin-branch-filter-card h3 {
+    margin: 0;
+    font-size: 22px;
+}
+
+.admin-branch-filter-card p {
+    margin: 6px 0 0;
+    color: var(--muted);
+}
+
+.admin-branch-filter-card select {
+    min-width: 260px;
+    border: 1px solid var(--border);
+    background: var(--soft);
+    padding: 12px 13px;
+    border-radius: 14px;
+    outline: none;
+    color: var(--text);
+    font-weight: 800;
+}
+
+.qr-branch-name {
+    margin: -8px 0 14px !important;
+    color: var(--primary-dark) !important;
+    font-weight: 900 !important;
+}
+
+@media (max-width: 700px) {
+    .admin-branch-filter-card {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .admin-branch-filter-card select {
+        min-width: 100%;
+    }
+}

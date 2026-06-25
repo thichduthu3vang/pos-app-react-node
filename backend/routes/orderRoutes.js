@@ -1,12 +1,21 @@
 import express from "express";
 import Order from "../models/Order.js";
 import Table from "../models/Table.js";
+import Branch from "../models/Branch.js";
 
 const router = express.Router();
 
 router.get("/", async (req, res) => {
     try {
-        const orders = await Order.find().sort({ createdAt: -1 });
+        const { branchCode } = req.query;
+
+        const filter = {};
+
+        if (branchCode) {
+            filter.branchCode = branchCode.trim().toUpperCase();
+        }
+
+        const orders = await Order.find(filter).sort({ createdAt: -1 });
 
         res.json({
             success: true,
@@ -23,7 +32,14 @@ router.get("/", async (req, res) => {
 
 router.post("/", async (req, res) => {
     try {
-        const { tableId, tableName, customerName, items, paymentMethod } = req.body;
+        const {
+            branchCode,
+            tableId,
+            tableName,
+            customerName,
+            items,
+            paymentMethod
+        } = req.body;
 
         if (!items || items.length === 0) {
             return res.status(400).json({
@@ -33,6 +49,11 @@ router.post("/", async (req, res) => {
         }
 
         let selectedTable = null;
+        let selectedBranch = null;
+
+        const cleanBranchCode = branchCode
+            ? branchCode.trim().toUpperCase()
+            : "";
 
         if (tableId) {
             selectedTable = await Table.findById(tableId);
@@ -44,8 +65,6 @@ router.post("/", async (req, res) => {
                 });
             }
 
-            // Cho phép bàn "available" hoặc "occupied" gọi món.
-            // Vì khách có thể đang ngồi và gọi thêm món bằng QR.
             if (
                 selectedTable.status === "cleaning" ||
                 selectedTable.status === "reserved"
@@ -55,13 +74,45 @@ router.post("/", async (req, res) => {
                     message: `${selectedTable.name} hiện chưa thể nhận order`
                 });
             }
+
+            if (
+                cleanBranchCode &&
+                selectedTable.branchCode &&
+                selectedTable.branchCode !== cleanBranchCode
+            ) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Bàn này không thuộc chi nhánh đang chọn"
+                });
+            }
+        }
+
+        const finalBranchCode =
+            selectedTable?.branchCode || cleanBranchCode || "";
+
+        if (finalBranchCode) {
+            selectedBranch = await Branch.findOne({
+                code: finalBranchCode,
+                isActive: true
+            });
+
+            if (!selectedBranch) {
+                return res.status(404).json({
+                    success: false,
+                    message: "Không tìm thấy chi nhánh hoặc chi nhánh đang tạm tắt"
+                });
+            }
         }
 
         const totalAmount = items.reduce((sum, item) => {
-            return sum + item.price * item.quantity;
+            return sum + Number(item.price || 0) * Number(item.quantity || 0);
         }, 0);
 
         const newOrder = await Order.create({
+            branchId: selectedBranch ? selectedBranch._id : null,
+            branchCode: selectedBranch ? selectedBranch.code : "",
+            branchName: selectedBranch ? selectedBranch.name : "",
+
             tableId: selectedTable ? selectedTable._id : null,
             tableName: selectedTable ? selectedTable.name : tableName || "Takeaway",
             customerName,
@@ -73,8 +124,6 @@ router.post("/", async (req, res) => {
             status: "pending"
         });
 
-        // Khi có order tại bàn thì bàn chuyển sang Có khách.
-        // Nếu bàn đã Có khách rồi thì vẫn giữ Có khách.
         if (selectedTable) {
             selectedTable.status = "occupied";
             selectedTable.currentOrderId = newOrder._id;
@@ -120,12 +169,6 @@ router.patch("/:id/status", async (req, res) => {
                 message: "Order not found"
             });
         }
-
-        // Không tự đổi trạng thái bàn ở đây.
-        // Lý do:
-        // - Đơn hoàn thành không có nghĩa khách đã rời bàn.
-        // - Đơn thanh toán xong cũng không có nghĩa khách đã rời bàn.
-        // - Nhân viên sẽ tự bấm Trống / Chờ dọn khi khách đi.
 
         res.json({
             success: true,
@@ -182,9 +225,6 @@ router.patch("/:id/pay", async (req, res) => {
         order.paidAt = new Date();
 
         await order.save();
-
-        // Không chuyển bàn về Trống sau khi thanh toán.
-        // Khách có thể thanh toán trước nhưng vẫn ngồi lại hoặc gọi thêm món.
 
         res.json({
             success: true,

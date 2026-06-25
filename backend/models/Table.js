@@ -2,6 +2,19 @@ import mongoose from "mongoose";
 
 const tableSchema = new mongoose.Schema(
   {
+    branchId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Branch",
+      default: null
+    },
+    branchCode: {
+      type: String,
+      default: ""
+    },
+    branchName: {
+      type: String,
+      default: ""
+    },
     name: {
       type: String,
       required: true
@@ -13,7 +26,6 @@ const tableSchema = new mongoose.Schema(
     status: {
       type: String,
       default: "available"
-      // available, occupied, cleaning, reserved
     },
     currentOrderId: {
       type: mongoose.Schema.Types.ObjectId,
