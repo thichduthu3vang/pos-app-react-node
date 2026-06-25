@@ -1,0 +1,221 @@
+.admin-reports-page {
+    min-height: 100vh;
+}
+
+.admin-reports-header {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 22px;
+    margin-bottom: 24px;
+    box-shadow: 0 14px 35px rgba(80, 52, 27, 0.08);
+    display: flex;
+    justify-content: space-between;
+    gap: 18px;
+    align-items: center;
+}
+
+.admin-reports-header h2 {
+    margin: 0;
+    font-size: 32px;
+}
+
+.admin-reports-header p {
+    margin: 8px 0 0;
+    color: var(--muted);
+}
+
+.admin-reports-refresh {
+    background: var(--primary);
+    color: white;
+    padding: 12px 18px;
+    border-radius: 14px;
+    font-weight: 800;
+}
+
+.admin-reports-filter {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 22px;
+    padding: 18px;
+    margin-bottom: 20px;
+    display: grid;
+    grid-template-columns: 220px 220px 160px;
+    gap: 16px;
+    align-items: end;
+    box-shadow: 0 14px 35px rgba(80, 52, 27, 0.08);
+}
+
+.admin-reports-filter label {
+    color: var(--muted);
+    font-weight: 800;
+    font-size: 14px;
+}
+
+.admin-reports-filter input {
+    width: 100%;
+    margin-top: 8px;
+    border: 1px solid var(--border);
+    background: var(--soft);
+    padding: 12px 13px;
+    border-radius: 14px;
+    outline: none;
+}
+
+.admin-reports-filter button {
+    background: var(--green);
+    color: white;
+    padding: 13px;
+    border-radius: 14px;
+    font-weight: 900;
+}
+
+.admin-report-stats {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 14px;
+    margin-bottom: 20px;
+}
+
+.admin-report-stats div,
+.payment-method-card,
+.admin-report-section {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 22px;
+    box-shadow: 0 14px 35px rgba(80, 52, 27, 0.08);
+}
+
+.admin-report-stats div {
+    padding: 18px;
+}
+
+.admin-report-stats span {
+    display: block;
+    color: var(--muted);
+    margin-bottom: 8px;
+    font-size: 14px;
+}
+
+.admin-report-stats strong {
+    font-size: 24px;
+    color: var(--primary-dark);
+}
+
+.admin-report-section {
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.admin-report-section-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 14px;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.admin-report-section-header h3 {
+    margin: 0;
+    font-size: 24px;
+}
+
+.admin-report-section-header span {
+    background: var(--soft);
+    border: 1px solid var(--border);
+    color: var(--primary-dark);
+    padding: 8px 12px;
+    border-radius: 999px;
+    font-weight: 900;
+}
+
+.payment-method-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 14px;
+}
+
+.payment-method-card {
+    padding: 16px;
+}
+
+.payment-method-card span {
+    display: block;
+    color: var(--muted);
+    margin-bottom: 8px;
+}
+
+.payment-method-card strong {
+    color: var(--primary-dark);
+    font-size: 20px;
+}
+
+.daily-revenue-list,
+.report-order-list {
+    display: grid;
+    gap: 10px;
+}
+
+.daily-revenue-row,
+.report-order-item {
+    background: var(--soft);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 14px;
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: center;
+}
+
+.daily-revenue-row strong,
+.report-order-item strong {
+    color: var(--primary-dark);
+    font-size: 20px;
+}
+
+.report-order-item h4 {
+    margin: 0 0 6px;
+    font-size: 18px;
+}
+
+.report-order-item p {
+    margin: 4px 0;
+    color: var(--muted);
+}
+
+.admin-report-empty {
+    border: 1px dashed var(--border);
+    border-radius: 18px;
+    padding: 34px;
+    text-align: center;
+    color: var(--muted);
+    background: white;
+}
+
+@media (max-width: 1200px) {
+
+    .admin-report-stats,
+    .payment-method-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .admin-reports-filter {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 700px) {
+
+    .admin-reports-header,
+    .daily-revenue-row,
+    .report-order-item {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .admin-report-stats,
+    .payment-method-grid {
+        grid-template-columns: 1fr;
+    }
+}

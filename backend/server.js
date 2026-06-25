@@ -8,6 +8,7 @@ import menuRoutes from "./routes/menuRoutes.js";
 import tableRoutes from "./routes/tableRoutes.js";
 import orderRoutes from "./routes/orderRoutes.js";
 import reportRoutes from "./routes/reportRoutes.js";
+import authRoutes from "./routes/authRoutes.js";
 
 dns.setServers(["8.8.8.8", "1.1.1.1"]);
 
@@ -47,6 +48,7 @@ app.get("/api/health", (req, res) => {
   });
 });
 
+app.use("/api/auth", authRoutes);
 app.use("/api/menu", menuRoutes);
 app.use("/api/tables", tableRoutes);
 app.use("/api/orders", orderRoutes);

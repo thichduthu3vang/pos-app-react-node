@@ -11,6 +11,7 @@
     "cors": "latest",
     "dotenv": "latest",
     "express": "latest",
+    "jsonwebtoken": "^9.0.3",
     "mongoose": "latest"
   },
   "devDependencies": {

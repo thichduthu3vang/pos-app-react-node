@@ -1,0 +1,35 @@
+.admin-nav {
+    display: grid;
+    gap: 10px;
+    margin-bottom: 22px;
+}
+
+.admin-nav a {
+    width: 100%;
+    display: block;
+    background: rgba(255, 255, 255, 0.08);
+    color: #cdbca9;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    padding: 12px 14px;
+    border-radius: 14px;
+    text-align: left;
+    font-weight: 900;
+    text-decoration: none;
+}
+
+.admin-nav a.active {
+    background: #fff3df;
+    color: #21170f;
+}
+
+.admin-logout-button {
+    width: 100%;
+    display: block;
+    background: #c0392b;
+    color: white;
+    border: 1px solid #c0392b;
+    padding: 12px 14px;
+    border-radius: 14px;
+    text-align: left;
+    font-weight: 900;
+}
