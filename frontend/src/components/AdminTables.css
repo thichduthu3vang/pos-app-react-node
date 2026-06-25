@@ -251,3 +251,163 @@
         grid-template-columns: 1fr;
     }
 }
+
+.admin-table-link {
+    display: grid;
+    grid-template-columns: 1fr 70px;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.admin-table-link input {
+    width: 100%;
+    border: 1px solid var(--border);
+    background: white;
+    padding: 9px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    color: var(--muted);
+}
+
+.admin-table-link button {
+    background: var(--green);
+    color: white;
+    padding: 9px 8px;
+    border-radius: 12px;
+    font-weight: 900;
+    font-size: 12px;
+}
+
+.admin-table-qr-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.admin-table-qr-actions button {
+    background: var(--primary);
+    color: white;
+    padding: 10px;
+    border-radius: 12px;
+    font-weight: 900;
+}
+
+.qr-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(33, 23, 15, 0.65);
+    z-index: 1000;
+    display: grid;
+    place-items: center;
+    padding: 20px;
+}
+
+.qr-modal {
+    width: min(480px, 100%);
+    background: white;
+    border-radius: 26px;
+    padding: 22px;
+    box-shadow: 0 20px 70px rgba(0, 0, 0, 0.25);
+}
+
+.qr-modal-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: flex-start;
+    margin-bottom: 18px;
+}
+
+.qr-modal-header h3 {
+    margin: 0;
+    font-size: 24px;
+}
+
+.qr-modal-header p {
+    margin: 6px 0 0;
+    color: var(--muted);
+}
+
+.qr-modal-header button {
+    background: #21170f;
+    color: white;
+    padding: 10px 14px;
+    border-radius: 12px;
+    font-weight: 900;
+}
+
+.qr-preview-card {
+    border: 1px solid var(--border);
+    background: var(--soft);
+    border-radius: 22px;
+    padding: 20px;
+    text-align: center;
+}
+
+.qr-preview-card h2 {
+    margin: 0 0 4px;
+    font-size: 28px;
+}
+
+.qr-preview-card h3 {
+    margin: 0 0 16px;
+    font-size: 22px;
+}
+
+.qr-preview-card img {
+    width: 260px;
+    height: 260px;
+    display: block;
+    margin: 0 auto 14px;
+    background: white;
+    padding: 10px;
+    border-radius: 18px;
+}
+
+.qr-preview-card p {
+    margin: 0 0 12px;
+    color: var(--muted);
+    font-weight: 800;
+}
+
+.qr-preview-card input {
+    width: 100%;
+    border: 1px solid var(--border);
+    background: white;
+    padding: 11px;
+    border-radius: 12px;
+    color: var(--muted);
+    font-size: 12px;
+    text-align: center;
+}
+
+.qr-modal-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+    margin-top: 16px;
+}
+
+.qr-modal-actions button {
+    background: var(--green);
+    color: white;
+    padding: 12px;
+    border-radius: 14px;
+    font-weight: 900;
+}
+
+.qr-modal-actions button.secondary {
+    background: #21170f;
+}
+
+@media (max-width: 700px) {
+    .qr-modal-actions {
+        grid-template-columns: 1fr;
+    }
+
+    .qr-preview-card img {
+        width: 220px;
+        height: 220px;
+    }
+}

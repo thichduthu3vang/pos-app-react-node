@@ -20,6 +20,30 @@ router.get("/", async (req, res) => {
     }
 });
 
+router.get("/:id", async (req, res) => {
+    try {
+        const table = await Table.findById(req.params.id);
+
+        if (!table) {
+            return res.status(404).json({
+                success: false,
+                message: "Table not found"
+            });
+        }
+
+        res.json({
+            success: true,
+            data: table
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: "Cannot get table",
+            error: error.message
+        });
+    }
+});
+
 router.post("/", async (req, res) => {
     try {
         const { name, area, status } = req.body;

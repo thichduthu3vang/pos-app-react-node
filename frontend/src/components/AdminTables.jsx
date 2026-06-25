@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import QRCode from "qrcode";
 import api from "../api";
 import "./AdminTables.css";
 
@@ -6,6 +7,7 @@ function AdminTables({ onTablesChanged }) {
     const [tables, setTables] = useState([]);
     const [loading, setLoading] = useState(true);
     const [editingId, setEditingId] = useState(null);
+    const [qrModal, setQrModal] = useState(null);
 
     const [form, setForm] = useState({
         name: "",
@@ -52,6 +54,149 @@ function AdminTables({ onTablesChanged }) {
         if (status === "cleaning") return "Chờ dọn";
         if (status === "reserved") return "Đã đặt";
         return status;
+    };
+
+    const getOrderLink = (table) => {
+        return `${window.location.origin}/order/${table._id}`;
+    };
+
+    const copyOrderLink = async (table) => {
+        const link = getOrderLink(table);
+
+        try {
+            await navigator.clipboard.writeText(link);
+            alert(`Đã copy link order của ${table.name}`);
+        } catch (error) {
+            console.error("Cannot copy link:", error);
+            alert(link);
+        }
+    };
+
+    const openQrModal = async (table) => {
+        try {
+            const link = getOrderLink(table);
+
+            const qrDataUrl = await QRCode.toDataURL(link, {
+                width: 320,
+                margin: 2
+            });
+
+            setQrModal({
+                table,
+                link,
+                qrDataUrl
+            });
+        } catch (error) {
+            console.error("Cannot create QR:", error);
+            alert("Không thể tạo QR cho bàn này");
+        }
+    };
+
+    const printQr = () => {
+        if (!qrModal) return;
+
+        const printHtml = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="UTF-8" />
+          <title>QR Order - ${qrModal.table.name}</title>
+          <style>
+            * {
+              box-sizing: border-box;
+            }
+
+            body {
+              margin: 0;
+              padding: 24px;
+              font-family: Arial, sans-serif;
+              background: white;
+              color: #111;
+            }
+
+            .qr-print-card {
+              width: 360px;
+              margin: 0 auto;
+              border: 2px solid #111;
+              border-radius: 20px;
+              padding: 22px;
+              text-align: center;
+            }
+
+            h1 {
+              margin: 0 0 8px;
+              font-size: 28px;
+            }
+
+            h2 {
+              margin: 0 0 18px;
+              font-size: 22px;
+            }
+
+            img {
+              width: 260px;
+              height: 260px;
+              display: block;
+              margin: 0 auto 16px;
+            }
+
+            p {
+              margin: 6px 0;
+              font-size: 14px;
+            }
+
+            .small {
+              font-size: 12px;
+              word-break: break-all;
+              color: #555;
+            }
+
+            @media print {
+              body {
+                padding: 0;
+              }
+
+              .qr-print-card {
+                border: 2px solid #111;
+                margin: 0 auto;
+              }
+            }
+          </style>
+        </head>
+
+        <body>
+          <div class="qr-print-card">
+            <h1>POS Coffee</h1>
+            <h2>${qrModal.table.name}</h2>
+
+            <img src="${qrModal.qrDataUrl}" alt="QR Order" />
+
+            <p><strong>Quét QR để gọi món tại bàn</strong></p>
+            <p>Khu vực: ${qrModal.table.area || "Khu chính"}</p>
+            <p class="small">${qrModal.link}</p>
+          </div>
+
+          <script>
+            window.onload = function () {
+              setTimeout(function () {
+                window.print();
+              }, 300);
+            };
+          </script>
+        </body>
+      </html>
+    `;
+
+        const printWindow = window.open("", "_blank", "width=430,height=650");
+
+        if (!printWindow) {
+            alert("Trình duyệt đang chặn cửa sổ in. Hãy cho phép pop-up rồi thử lại.");
+            return;
+        }
+
+        printWindow.document.open();
+        printWindow.document.write(printHtml);
+        printWindow.document.close();
     };
 
     const handleSubmit = async (e) => {
@@ -148,7 +293,7 @@ function AdminTables({ onTablesChanged }) {
             <div className="admin-tables-header">
                 <div>
                     <h2>Admin - Quản lý bàn</h2>
-                    <p>Thêm, sửa, xóa và đổi trạng thái bàn trong quán.</p>
+                    <p>Thêm, sửa, xóa, đổi trạng thái bàn và tạo QR order cho từng bàn.</p>
                 </div>
 
                 <button className="admin-tables-refresh" onClick={loadTables}>
@@ -217,7 +362,10 @@ function AdminTables({ onTablesChanged }) {
                     ) : (
                         <div className="admin-table-grid">
                             {tables.map((table) => (
-                                <div className={`admin-table-card ${table.status}`} key={table._id}>
+                                <div
+                                    className={`admin-table-card ${table.status}`}
+                                    key={table._id}
+                                >
                                     <div className="admin-table-card-top">
                                         <div>
                                             <h4>{table.name}</h4>
@@ -241,6 +389,24 @@ function AdminTables({ onTablesChanged }) {
                                         </button>
                                     </div>
 
+                                    <div className="admin-table-link">
+                                        <input value={getOrderLink(table)} readOnly />
+
+                                        <button onClick={() => copyOrderLink(table)}>
+                                            Copy
+                                        </button>
+                                    </div>
+
+                                    <div className="admin-table-qr-actions">
+                                        <button onClick={() => openQrModal(table)}>
+                                            Xem QR
+                                        </button>
+
+                                        <button onClick={() => copyOrderLink(table)}>
+                                            Copy link
+                                        </button>
+                                    </div>
+
                                     <div className="admin-table-actions">
                                         <button onClick={() => startEdit(table)}>Sửa</button>
 
@@ -257,6 +423,46 @@ function AdminTables({ onTablesChanged }) {
                     )}
                 </div>
             </div>
+
+            {qrModal && (
+                <div className="qr-modal-overlay">
+                    <div className="qr-modal">
+                        <div className="qr-modal-header">
+                            <div>
+                                <h3>QR Order - {qrModal.table.name}</h3>
+                                <p>Khách quét mã này để gọi món tại bàn.</p>
+                            </div>
+
+                            <button onClick={() => setQrModal(null)}>Đóng</button>
+                        </div>
+
+                        <div className="qr-preview-card">
+                            <h2>POS Coffee</h2>
+                            <h3>{qrModal.table.name}</h3>
+
+                            <img src={qrModal.qrDataUrl} alt="QR Order" />
+
+                            <p>Quét QR để gọi món</p>
+
+                            <input value={qrModal.link} readOnly />
+                        </div>
+
+                        <div className="qr-modal-actions">
+                            <button onClick={() => copyOrderLink(qrModal.table)}>
+                                Copy link
+                            </button>
+
+                            <button onClick={printQr}>
+                                In QR
+                            </button>
+
+                            <button className="secondary" onClick={() => setQrModal(null)}>
+                                Đóng
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </section>
     );
 }

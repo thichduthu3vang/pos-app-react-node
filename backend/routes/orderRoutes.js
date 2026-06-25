@@ -44,10 +44,15 @@ router.post("/", async (req, res) => {
                 });
             }
 
-            if (selectedTable.status !== "available") {
+            // Cho phép bàn "available" hoặc "occupied" gọi món.
+            // Vì khách có thể đang ngồi và gọi thêm món bằng QR.
+            if (
+                selectedTable.status === "cleaning" ||
+                selectedTable.status === "reserved"
+            ) {
                 return res.status(400).json({
                     success: false,
-                    message: `${selectedTable.name} hiện không trống`
+                    message: `${selectedTable.name} hiện chưa thể nhận order`
                 });
             }
         }
@@ -64,9 +69,12 @@ router.post("/", async (req, res) => {
             totalAmount,
             paymentMethod: paymentMethod || "cash",
             paymentStatus: "unpaid",
-            paidAt: null
+            paidAt: null,
+            status: "pending"
         });
 
+        // Khi có order tại bàn thì bàn chuyển sang Có khách.
+        // Nếu bàn đã Có khách rồi thì vẫn giữ Có khách.
         if (selectedTable) {
             selectedTable.status = "occupied";
             selectedTable.currentOrderId = newOrder._id;
@@ -113,20 +121,11 @@ router.patch("/:id/status", async (req, res) => {
             });
         }
 
-        if (updatedOrder.tableId) {
-            if (status === "completed") {
-                await Table.findByIdAndUpdate(updatedOrder.tableId, {
-                    status: "cleaning"
-                });
-            }
-
-            if (status === "cancelled") {
-                await Table.findByIdAndUpdate(updatedOrder.tableId, {
-                    status: "available",
-                    currentOrderId: null
-                });
-            }
-        }
+        // Không tự đổi trạng thái bàn ở đây.
+        // Lý do:
+        // - Đơn hoàn thành không có nghĩa khách đã rời bàn.
+        // - Đơn thanh toán xong cũng không có nghĩa khách đã rời bàn.
+        // - Nhân viên sẽ tự bấm Trống / Chờ dọn khi khách đi.
 
         res.json({
             success: true,
@@ -184,12 +183,8 @@ router.patch("/:id/pay", async (req, res) => {
 
         await order.save();
 
-        if (order.tableId) {
-            await Table.findByIdAndUpdate(order.tableId, {
-                status: "available",
-                currentOrderId: null
-            });
-        }
+        // Không chuyển bàn về Trống sau khi thanh toán.
+        // Khách có thể thanh toán trước nhưng vẫn ngồi lại hoặc gọi thêm món.
 
         res.json({
             success: true,
