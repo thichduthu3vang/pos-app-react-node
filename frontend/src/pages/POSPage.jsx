@@ -38,6 +38,10 @@ function POSPage() {
             ? `Chi nhánh ${normalizedBranchCode}`
             : "POS tổng";
 
+    const formatMoney = (amount) => {
+        return Number(amount || 0).toLocaleString("vi-VN") + "đ";
+    };
+
     const loadCurrentBranch = async () => {
         if (!normalizedBranchCode) {
             setCurrentBranch(null);
@@ -346,8 +350,8 @@ function POSPage() {
                 <div className="brand">
                     <div className="brand-icon">☕</div>
                     <div>
-                        <h1>POS Coffee</h1>
-                        <p>React + Node + MongoDB</p>
+                        <h1>Rivius POS</h1>
+                        <p>Luxury self order</p>
                     </div>
                 </div>
 
@@ -374,7 +378,7 @@ function POSPage() {
 
                 <div className="sidebar-box">
                     <span className="label">Doanh thu hôm nay</span>
-                    <strong>{todayReport.totalRevenue.toLocaleString("vi-VN")}đ</strong>
+                    <strong>{formatMoney(todayReport.totalRevenue)}</strong>
                 </div>
 
                 <div className="sidebar-box">
@@ -415,7 +419,7 @@ function POSPage() {
                     </div>
 
                     <button className="refresh-button" onClick={reloadDashboardData}>
-                        Làm mới
+                        Làm mới dữ liệu
                     </button>
                 </section>
 
@@ -482,11 +486,15 @@ function POSPage() {
                                 </button>
 
                                 <div className="table-actions">
-                                    <button onClick={() => updateTableStatus(table._id, "available")}>
+                                    <button
+                                        onClick={() => updateTableStatus(table._id, "available")}
+                                    >
                                         Trống
                                     </button>
 
-                                    <button onClick={() => updateTableStatus(table._id, "cleaning")}>
+                                    <button
+                                        onClick={() => updateTableStatus(table._id, "cleaning")}
+                                    >
                                         Chờ dọn
                                     </button>
                                 </div>
@@ -504,6 +512,13 @@ function POSPage() {
 
                 <section className="content-layout">
                     <div className="menu-area">
+                        <div className="section-heading">
+                            <div>
+                                <h2>Menu</h2>
+                                <p>Chọn món để thêm nhanh vào đơn hiện tại.</p>
+                            </div>
+                        </div>
+
                         <div className="category-tabs">
                             {categories.map((category) => (
                                 <button
@@ -545,7 +560,7 @@ function POSPage() {
                                             <p>{item.isAvailable ? "Đang bán" : "Tạm hết"}</p>
 
                                             <div className="menu-bottom">
-                                                <strong>{item.price.toLocaleString("vi-VN")}đ</strong>
+                                                <strong>{formatMoney(item.price)}</strong>
 
                                                 <button
                                                     disabled={!item.isAvailable}
@@ -601,7 +616,7 @@ function POSPage() {
                                             <div className="cart-top">
                                                 <div>
                                                     <h4>{item.name}</h4>
-                                                    <p>{item.price.toLocaleString("vi-VN")}đ</p>
+                                                    <p>{formatMoney(item.price)}</p>
                                                 </div>
 
                                                 <div className="quantity-control">
@@ -639,7 +654,7 @@ function POSPage() {
 
                             <div className="total-box">
                                 <span>Tổng tiền</span>
-                                <strong>{totalAmount.toLocaleString("vi-VN")}đ</strong>
+                                <strong>{formatMoney(totalAmount)}</strong>
                             </div>
 
                             <button className="order-button" onClick={createOrder}>
@@ -648,10 +663,15 @@ function POSPage() {
                         </div>
 
                         <div className="panel-card orders-card">
-                            <h2>Đơn đã tạo</h2>
+                            <div className="section-heading">
+                                <div>
+                                    <h2>Đơn đã tạo</h2>
+                                    <p>Hiển thị 8 đơn mới nhất của chi nhánh hiện tại.</p>
+                                </div>
+                            </div>
 
                             {orders.length === 0 ? (
-                                <p className="muted">Chưa có đơn nào.</p>
+                                <div className="empty-box">Chưa có đơn nào.</div>
                             ) : (
                                 orders.slice(0, 8).map((order) => (
                                     <div className="order-card" key={order._id}>
@@ -694,9 +714,7 @@ function POSPage() {
                                         </div>
 
                                         <div className="order-footer">
-                                            <strong>
-                                                {(order.totalAmount || 0).toLocaleString("vi-VN")}đ
-                                            </strong>
+                                            <strong>{formatMoney(order.totalAmount || 0)}</strong>
                                         </div>
 
                                         <div className="status-buttons">

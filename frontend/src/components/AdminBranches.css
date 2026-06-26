@@ -2,168 +2,315 @@
     min-height: 100vh;
 }
 
-.admin-branches-header {
-    background: white;
-    border: 1px solid var(--border);
-    border-radius: 24px;
-    padding: 22px;
+.admin-branches-hero {
+    position: relative;
+    overflow: hidden;
+    background:
+        linear-gradient(135deg, rgba(255, 253, 249, 0.96), rgba(248, 243, 234, 0.94));
+    border: 1px solid rgba(221, 208, 188, 0.9);
+    border-radius: 30px;
+    padding: 26px;
     margin-bottom: 24px;
-    box-shadow: 0 14px 35px rgba(80, 52, 27, 0.08);
+    box-shadow: 0 12px 42px rgba(63, 45, 25, 0.1);
     display: flex;
     justify-content: space-between;
     gap: 18px;
     align-items: center;
 }
 
-.admin-branches-header h2 {
+.admin-branches-hero::after {
+    content: "";
+    position: absolute;
+    right: -80px;
+    top: -80px;
+    width: 220px;
+    height: 220px;
+    background: radial-gradient(circle, rgba(196, 159, 86, 0.22), transparent 64%);
+    pointer-events: none;
+}
+
+.admin-branches-hero h2 {
     margin: 0;
-    font-size: 32px;
+    font-family: var(--font-display, "Playfair Display", Georgia, serif);
+    font-size: 40px;
+    font-weight: 600;
+    color: #3f2d19;
 }
 
-.admin-branches-header p {
+.admin-branches-hero p {
     margin: 8px 0 0;
-    color: var(--muted);
+    color: #6b5540;
 }
 
-.admin-branches-refresh {
-    background: var(--primary);
+.admin-branches-hero button {
+    position: relative;
+    z-index: 1;
+    background: linear-gradient(135deg, #3f2d19, #5a3d22);
     color: white;
-    padding: 12px 18px;
-    border-radius: 14px;
-    font-weight: 800;
+    padding: 13px 18px;
+    border-radius: 999px;
+    font-weight: 900;
+    box-shadow: 0 10px 30px rgba(63, 45, 25, 0.12);
+}
+
+.admin-branches-hero button:hover {
+    background: linear-gradient(135deg, #c49f56, #d9ba74);
+    color: #2c1f10;
+}
+
+.admin-branches-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(185px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.admin-branch-stat {
+    position: relative;
+    overflow: hidden;
+    background: rgba(255, 253, 249, 0.95);
+    border: 1px solid #ddd0bc;
+    border-radius: 24px;
+    padding: 20px;
+    box-shadow: 0 8px 30px rgba(63, 45, 25, 0.08);
+}
+
+.admin-branch-stat::after {
+    content: "";
+    position: absolute;
+    right: -38px;
+    bottom: -38px;
+    width: 120px;
+    height: 120px;
+    background: radial-gradient(circle, rgba(196, 159, 86, 0.16), transparent 66%);
+}
+
+.admin-branch-stat span {
+    display: block;
+    color: #6b5540;
+    font-size: 12px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 10px;
+}
+
+.admin-branch-stat strong {
+    position: relative;
+    z-index: 1;
+    display: block;
+    font-family: var(--font-display, "Playfair Display", Georgia, serif);
+    font-size: 31px;
+    font-weight: 600;
+    color: #3f2d19;
+    line-height: 1.15;
+}
+
+.admin-branch-stat.revenue {
+    background: linear-gradient(135deg, #3f2d19, #5a3d22);
+    border-color: rgba(196, 159, 86, 0.35);
+}
+
+.admin-branch-stat.revenue span {
+    color: rgba(213, 196, 175, 0.82);
+}
+
+.admin-branch-stat.revenue strong {
+    color: #d9ba74;
+}
+
+.admin-branch-stat.cancelled {
+    background: #fff5f3;
 }
 
 .admin-branches-layout {
     display: grid;
-    grid-template-columns: 380px 1fr;
+    grid-template-columns: 390px 1fr;
     gap: 24px;
     align-items: start;
 }
 
 .admin-branch-form,
 .admin-branch-list-card {
-    background: white;
-    border: 1px solid var(--border);
-    border-radius: 24px;
-    padding: 20px;
-    box-shadow: 0 14px 35px rgba(80, 52, 27, 0.08);
+    background: rgba(255, 253, 249, 0.95);
+    border: 1px solid #ddd0bc;
+    box-shadow: 0 10px 38px rgba(63, 45, 25, 0.09);
+    backdrop-filter: blur(18px);
 }
 
 .admin-branch-form {
     position: sticky;
     top: 24px;
+    border-radius: 28px;
+    padding: 22px;
 }
 
 .admin-branch-form h3,
-.admin-branch-list-card h3 {
+.admin-branch-list-header h3 {
     margin: 0 0 18px;
-    font-size: 24px;
+    font-family: var(--font-display, "Playfair Display", Georgia, serif);
+    font-size: 29px;
+    font-weight: 600;
+    color: #3f2d19;
 }
 
 .admin-branch-form label {
-    display: block;
-    margin-bottom: 14px;
-    color: var(--muted);
-    font-weight: 700;
-    font-size: 14px;
+    display: grid;
+    gap: 8px;
+    margin-bottom: 15px;
+    color: #6b5540;
+    font-size: 13px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
 }
 
-.admin-branch-form input {
+.admin-branch-form input,
+.admin-branch-form select {
     width: 100%;
-    margin-top: 7px;
-    border: 1px solid var(--border);
-    background: var(--soft);
-    padding: 12px 13px;
-    border-radius: 14px;
+    border: 1px solid #ddd0bc;
+    background: #f8f3ea;
+    padding: 13px 14px;
+    border-radius: 16px;
     outline: none;
-    color: var(--text);
-}
-
-.admin-branch-form input:focus {
-    border-color: var(--primary);
-    background: white;
+    color: #241910;
+    font-size: 15px;
+    font-weight: 700;
 }
 
 .admin-branch-checkbox {
     display: flex !important;
-    gap: 10px;
+    gap: 10px !important;
     align-items: center;
+    text-transform: none !important;
+    letter-spacing: 0 !important;
+    font-size: 14px !important;
+    color: #3f2d19 !important;
+    background: #f8f3ea;
+    border: 1px solid #ddd0bc;
+    border-radius: 16px;
+    padding: 13px 14px;
 }
 
 .admin-branch-checkbox input {
     width: auto;
     margin: 0;
+    accent-color: #c49f56;
 }
 
-.admin-branch-actions {
+.admin-branch-form-actions {
     display: grid;
     gap: 10px;
+    margin-top: 16px;
 }
 
-.admin-branch-actions button {
-    background: var(--green);
+.admin-branch-form-actions button {
+    background: linear-gradient(135deg, #2f8f5b, #44a86d);
     color: white;
-    padding: 13px;
-    border-radius: 14px;
+    padding: 14px;
+    border-radius: 16px;
     font-weight: 900;
+    box-shadow: 0 10px 28px rgba(47, 143, 91, 0.18);
 }
 
-.admin-branch-actions button.secondary {
-    background: #21170f;
+.admin-branch-form-actions button.secondary {
+    background: linear-gradient(135deg, #3f2d19, #5a3d22);
+}
+
+.admin-branch-main {
+    min-width: 0;
+}
+
+.admin-branch-list-card {
+    border-radius: 28px;
+    padding: 22px;
 }
 
 .admin-branch-list-header {
-    display: flex;
-    justify-content: space-between;
-    gap: 14px;
-    align-items: center;
-    margin-bottom: 14px;
+    margin-bottom: 18px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #ddd0bc;
 }
 
 .admin-branch-list-header h3 {
-    margin: 0;
+    margin-bottom: 6px;
 }
 
-.admin-branch-list-header span {
-    background: var(--soft);
-    border: 1px solid var(--border);
-    color: var(--primary-dark);
-    padding: 8px 12px;
-    border-radius: 999px;
-    font-weight: 900;
+.admin-branch-list-header p {
+    margin: 0;
+    color: #6b5540;
 }
 
 .admin-branch-empty {
-    border: 1px dashed var(--border);
-    border-radius: 18px;
-    padding: 34px;
+    background: #f8f3ea;
+    border: 1px dashed #c9b89e;
+    border-radius: 24px;
+    padding: 42px;
     text-align: center;
-    color: var(--muted);
+    color: #6b5540;
+    font-weight: 900;
 }
 
 .admin-branch-list {
     display: grid;
-    gap: 14px;
-}
-
-.admin-branch-item {
-    background: var(--soft);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 16px;
-    display: grid;
-    grid-template-columns: 1fr 160px;
     gap: 16px;
 }
 
-.admin-branch-item h4 {
-    margin: 0 0 8px;
-    font-size: 22px;
+.admin-branch-item {
+    position: relative;
+    overflow: hidden;
+    background: #f8f3ea;
+    border: 1px solid #ddd0bc;
+    border-radius: 26px;
+    padding: 18px;
+    display: grid;
+    grid-template-columns: 1fr 165px;
+    gap: 18px;
 }
 
-.admin-branch-item p {
-    margin: 5px 0;
-    color: var(--muted);
+.admin-branch-item::after {
+    content: "";
+    position: absolute;
+    right: -46px;
+    bottom: -46px;
+    width: 140px;
+    height: 140px;
+    background: radial-gradient(circle, rgba(196, 159, 86, 0.16), transparent 66%);
+    pointer-events: none;
+}
+
+.admin-branch-info,
+.admin-branch-side {
+    position: relative;
+    z-index: 1;
+}
+
+.admin-branch-code {
+    display: inline-block;
+    background: #3f2d19;
+    color: #d9ba74;
+    padding: 7px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 900;
+    margin-bottom: 12px;
+}
+
+.admin-branch-info h4 {
+    margin: 0 0 10px;
+    font-family: var(--font-display, "Playfair Display", Georgia, serif);
+    color: #3f2d19;
+    font-size: 28px;
+    font-weight: 600;
+}
+
+.admin-branch-info p {
+    margin: 6px 0;
+    color: #6b5540;
+}
+
+.admin-branch-info strong {
+    color: #3f2d19;
 }
 
 .admin-branch-side {
@@ -172,7 +319,7 @@
     align-content: start;
 }
 
-.branch-status {
+.admin-branch-status {
     text-align: center;
     padding: 8px 10px;
     border-radius: 999px;
@@ -180,29 +327,54 @@
     font-weight: 900;
 }
 
-.branch-status.active {
+.admin-branch-status.active {
     background: #ddf7e8;
-    color: var(--green);
+    color: #2f8f5b;
+    border: 1px solid rgba(47, 143, 91, 0.22);
 }
 
-.branch-status.inactive {
+.admin-branch-status.inactive {
     background: #ffe6e3;
-    color: var(--red);
+    color: #b94a3d;
+    border: 1px solid rgba(185, 74, 61, 0.22);
 }
 
 .admin-branch-side button {
     background: white;
-    border: 1px solid var(--border);
-    color: var(--text);
+    border: 1px solid #ddd0bc;
+    color: #3f2d19;
     padding: 10px;
-    border-radius: 12px;
+    border-radius: 14px;
     font-weight: 900;
 }
 
-.admin-branch-side button.danger {
-    background: var(--red);
+.admin-branch-side button:hover {
+    background: #3f2d19;
+    border-color: #3f2d19;
     color: white;
-    border-color: var(--red);
+}
+
+.admin-branch-side button.warning {
+    background: #fff1d6;
+    border-color: rgba(196, 159, 86, 0.35);
+    color: #9a6500;
+}
+
+.admin-branch-side button.success {
+    background: #ddf7e8;
+    border-color: rgba(47, 143, 91, 0.22);
+    color: #2f8f5b;
+}
+
+.admin-branch-side button.danger {
+    background: #b94a3d;
+    border-color: #b94a3d;
+    color: white;
+}
+
+.admin-branch-side button.danger:hover {
+    background: #93372e;
+    border-color: #93372e;
 }
 
 @media (max-width: 1100px) {
@@ -216,12 +388,24 @@
 }
 
 @media (max-width: 700px) {
-    .admin-branches-header {
+    .admin-branches-hero {
         flex-direction: column;
         align-items: flex-start;
     }
 
+    .admin-branches-hero h2 {
+        font-size: 32px;
+    }
+
     .admin-branch-item {
         grid-template-columns: 1fr;
+    }
+
+    .admin-branch-side {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .admin-branch-status {
+        grid-column: 1 / -1;
     }
 }

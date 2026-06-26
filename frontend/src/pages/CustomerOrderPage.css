@@ -1,126 +1,178 @@
 .customer-order-page {
     min-height: 100vh;
-    background: #f6efe7;
-    padding: 16px;
-    padding-bottom: 180px;
+    padding: 22px;
+    background:
+        radial-gradient(circle at top left, rgba(196, 159, 86, 0.18), transparent 34%),
+        radial-gradient(circle at bottom right, rgba(63, 45, 25, 0.14), transparent 34%),
+        linear-gradient(135deg, #f9f6f2, #f3ebdf);
+    color: var(--text);
+    font-family: var(--font-body, "Be Vietnam Pro", Arial, sans-serif);
+}
+
+.customer-order-loading {
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    background:
+        radial-gradient(circle at top left, rgba(196, 159, 86, 0.18), transparent 34%),
+        linear-gradient(135deg, #f9f6f2, #f3ebdf);
+    color: #3f2d19;
+    font-weight: 900;
+    font-size: 18px;
 }
 
 .customer-order-header {
-    background: #21170f;
+    max-width: 980px;
+    margin: 0 auto 18px;
+    background:
+        linear-gradient(135deg, rgba(63, 45, 25, 0.97), rgba(90, 61, 34, 0.94));
+    border: 1px solid rgba(196, 159, 86, 0.28);
+    border-radius: 30px;
+    padding: 22px;
     color: white;
-    border-radius: 24px;
-    padding: 20px;
-    margin-bottom: 16px;
     display: flex;
     justify-content: space-between;
-    gap: 16px;
+    gap: 18px;
     align-items: center;
+    box-shadow: 0 18px 55px rgba(63, 45, 25, 0.18);
 }
 
 .customer-order-header h1 {
     margin: 0;
-    font-size: 28px;
+    font-family: var(--font-display, "Playfair Display", Georgia, serif);
+    font-size: 38px;
+    font-weight: 600;
+    color: white;
 }
 
 .customer-order-header p {
     margin: 6px 0 0;
-    color: #cdbca9;
+    color: rgba(213, 196, 175, 0.82);
+    font-weight: 700;
 }
 
 .customer-table-badge {
-    background: #fff3df;
-    color: #21170f;
-    padding: 10px 14px;
-    border-radius: 18px;
+    min-width: 104px;
     text-align: center;
+    background: rgba(255, 255, 255, 0.09);
+    border: 1px solid rgba(196, 159, 86, 0.26);
+    border-radius: 22px;
+    padding: 14px 16px;
 }
 
 .customer-table-badge span {
     display: block;
+    color: rgba(213, 196, 175, 0.8);
     font-size: 12px;
-    font-weight: 800;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
 }
 
 .customer-table-badge strong {
     display: block;
-    font-size: 18px;
+    margin-top: 4px;
+    font-family: var(--font-display, "Playfair Display", Georgia, serif);
+    font-size: 26px;
+    color: #d9ba74;
 }
 
-.customer-info-card {
-    background: white;
-    border: 1px solid #ead9c7;
-    border-radius: 20px;
-    padding: 16px;
-    margin-bottom: 16px;
+.customer-info-card,
+.customer-cart {
+    max-width: 980px;
+    margin: 0 auto 18px;
+    background: rgba(255, 253, 249, 0.94);
+    border: 1px solid rgba(221, 208, 188, 0.9);
+    border-radius: 26px;
+    padding: 20px;
+    box-shadow: 0 10px 38px rgba(63, 45, 25, 0.1);
+    backdrop-filter: blur(18px);
 }
 
 .customer-info-card label {
-    display: block;
-    color: #7b6b5c;
-    font-weight: 800;
-    font-size: 14px;
+    display: grid;
+    gap: 8px;
+    color: #6b5540;
+    font-size: 13px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
 }
 
-.customer-info-card input {
+.customer-info-card input,
+.customer-cart-item input {
     width: 100%;
-    margin-top: 8px;
-    border: 1px solid #ead9c7;
-    background: #fffaf3;
-    padding: 13px;
-    border-radius: 14px;
+    border: 1px solid #ddd0bc;
+    background: #f8f3ea;
+    padding: 14px 15px;
+    border-radius: 16px;
+    color: #241910;
     outline: none;
+    font-size: 15px;
+}
+
+.customer-info-card input:focus,
+.customer-cart-item input:focus {
+    border-color: #c49f56;
+    box-shadow: 0 0 0 4px rgba(196, 159, 86, 0.16);
 }
 
 .customer-category-tabs {
+    max-width: 980px;
+    margin: 0 auto 18px;
     display: flex;
-    gap: 8px;
+    gap: 10px;
     overflow-x: auto;
-    margin-bottom: 16px;
     padding-bottom: 4px;
 }
 
 .customer-category-tabs button {
-    border: 1px solid #ead9c7;
+    flex: 0 0 auto;
     background: white;
-    color: #21170f;
-    padding: 10px 14px;
+    border: 1px solid #ddd0bc;
+    color: #6b5540;
+    padding: 11px 15px;
     border-radius: 999px;
     font-weight: 900;
-    white-space: nowrap;
+    box-shadow: 0 4px 16px rgba(63, 45, 25, 0.06);
 }
 
-.customer-category-tabs button.active {
-    background: #21170f;
+.customer-category-tabs button.active,
+.customer-category-tabs button:hover {
+    background: #3f2d19;
+    border-color: #3f2d19;
     color: white;
-    border-color: #21170f;
 }
 
 .customer-menu-list {
+    max-width: 980px;
+    margin: 0 auto 18px;
     display: grid;
-    gap: 12px;
+    gap: 14px;
 }
 
 .customer-menu-card {
-    background: white;
-    border: 1px solid #ead9c7;
-    border-radius: 20px;
-    padding: 12px;
+    background: rgba(255, 253, 249, 0.96);
+    border: 1px solid #ddd0bc;
+    border-radius: 24px;
+    padding: 14px;
     display: grid;
-    grid-template-columns: 82px 1fr 76px;
-    gap: 12px;
+    grid-template-columns: 98px 1fr auto;
+    gap: 14px;
     align-items: center;
+    box-shadow: 0 8px 28px rgba(63, 45, 25, 0.08);
 }
 
 .customer-menu-image {
-    width: 82px;
-    height: 82px;
-    border-radius: 16px;
+    width: 98px;
+    height: 98px;
+    border-radius: 20px;
+    background: #f8f3ea;
     overflow: hidden;
-    background: #eee;
     display: grid;
     place-items: center;
-    color: #7b6b5c;
-    font-size: 12px;
+    color: #9e846a;
+    font-weight: 900;
 }
 
 .customer-menu-image img {
@@ -130,82 +182,81 @@
 }
 
 .customer-menu-info h3 {
-    margin: 0 0 5px;
-    font-size: 17px;
+    margin: 0;
+    font-family: var(--font-display, "Playfair Display", Georgia, serif);
+    font-size: 23px;
+    color: #3f2d19;
+    font-weight: 600;
 }
 
 .customer-menu-info p {
-    margin: 0 0 8px;
-    color: #7b6b5c;
-    font-size: 13px;
+    margin: 5px 0;
+    color: #6b5540;
 }
 
 .customer-menu-info strong {
-    color: #8b4a1f;
+    color: #3f2d19;
+    font-size: 18px;
 }
 
 .customer-menu-card>button {
-    background: #137f3f;
-    color: white;
-    padding: 11px 8px;
-    border-radius: 14px;
+    background: linear-gradient(135deg, #c49f56, #d9ba74);
+    color: #2c1f10;
+    padding: 11px 14px;
+    border-radius: 999px;
     font-weight: 900;
-}
-
-.customer-cart {
-    position: fixed;
-    left: 12px;
-    right: 12px;
-    bottom: 12px;
-    background: white;
-    border: 1px solid #ead9c7;
-    border-radius: 24px;
-    padding: 14px;
-    box-shadow: 0 18px 50px rgba(33, 23, 15, 0.22);
-    max-height: 55vh;
-    overflow: auto;
+    white-space: nowrap;
+    box-shadow: 0 8px 24px rgba(196, 159, 86, 0.2);
 }
 
 .customer-cart h2 {
-    margin: 0 0 12px;
-    font-size: 22px;
+    margin: 0 0 16px;
+    font-family: var(--font-display, "Playfair Display", Georgia, serif);
+    color: #3f2d19;
+    font-size: 30px;
+    font-weight: 600;
 }
 
 .customer-empty {
-    border: 1px dashed #ead9c7;
-    border-radius: 16px;
-    padding: 18px;
+    border: 1px dashed #c9b89e;
+    background: #f8f3ea;
+    color: #6b5540;
+    border-radius: 20px;
+    padding: 26px;
     text-align: center;
-    color: #7b6b5c;
+    font-weight: 900;
 }
 
 .customer-cart-list {
     display: grid;
-    gap: 10px;
+    gap: 12px;
 }
 
 .customer-cart-item {
-    background: #fffaf3;
-    border: 1px solid #ead9c7;
-    border-radius: 16px;
-    padding: 12px;
+    background: white;
+    border: 1px solid #ddd0bc;
+    border-radius: 22px;
+    padding: 15px;
 }
 
 .customer-cart-top {
     display: flex;
     justify-content: space-between;
-    gap: 12px;
-    align-items: center;
-    margin-bottom: 10px;
+    gap: 14px;
+    align-items: flex-start;
+    margin-bottom: 12px;
 }
 
 .customer-cart-top h4 {
     margin: 0 0 4px;
+    font-family: var(--font-display, "Playfair Display", Georgia, serif);
+    color: #3f2d19;
+    font-size: 22px;
 }
 
 .customer-cart-top p {
     margin: 0;
-    color: #7b6b5c;
+    color: #6b5540;
 }
 
 .customer-quantity {
@@ -215,69 +266,84 @@
 }
 
 .customer-quantity button {
-    width: 30px;
-    height: 30px;
-    border-radius: 10px;
-    background: #21170f;
+    width: 32px;
+    height: 32px;
+    border-radius: 999px;
+    background: #3f2d19;
     color: white;
     font-weight: 900;
 }
 
 .customer-quantity span {
-    min-width: 20px;
+    min-width: 24px;
     text-align: center;
     font-weight: 900;
 }
 
-.customer-cart-item input {
-    width: 100%;
-    border: 1px solid #ead9c7;
-    background: white;
-    padding: 10px;
-    border-radius: 12px;
-    outline: none;
-}
-
 .customer-total {
+    margin: 18px 0;
+    padding: 18px;
+    border-radius: 22px;
+    background: linear-gradient(135deg, #3f2d19, #5a3d22);
+    color: white;
     display: flex;
     justify-content: space-between;
-    gap: 12px;
+    gap: 14px;
     align-items: center;
-    background: #21170f;
-    color: white;
-    border-radius: 16px;
-    padding: 13px;
-    margin-top: 12px;
 }
 
 .customer-total span {
-    color: #cdbca9;
+    color: rgba(213, 196, 175, 0.8);
+    font-weight: 900;
 }
 
 .customer-total strong {
-    font-size: 22px;
+    font-family: var(--font-display, "Playfair Display", Georgia, serif);
+    color: #d9ba74;
+    font-size: 28px;
 }
 
 .customer-submit-button {
     width: 100%;
-    background: #137f3f;
+    background: linear-gradient(135deg, #3f2d19, #5a3d22);
     color: white;
-    padding: 14px;
-    border-radius: 16px;
+    padding: 15px;
+    border-radius: 18px;
     font-weight: 900;
-    margin-top: 10px;
+    box-shadow: 0 10px 30px rgba(63, 45, 25, 0.16);
 }
 
-.customer-submit-button:disabled {
-    opacity: 0.7;
-    cursor: not-allowed;
+.customer-submit-button:hover {
+    background: linear-gradient(135deg, #c49f56, #d9ba74);
+    color: #2c1f10;
 }
 
-.customer-order-loading {
-    min-height: 100vh;
-    display: grid;
-    place-items: center;
-    background: #f6efe7;
-    color: #21170f;
-    font-weight: 900;
+@media (max-width: 640px) {
+    .customer-order-page {
+        padding: 12px;
+    }
+
+    .customer-order-header {
+        border-radius: 24px;
+        align-items: flex-start;
+    }
+
+    .customer-order-header h1 {
+        font-size: 31px;
+    }
+
+    .customer-menu-card {
+        grid-template-columns: 78px 1fr;
+    }
+
+    .customer-menu-image {
+        width: 78px;
+        height: 78px;
+        border-radius: 16px;
+    }
+
+    .customer-menu-card>button {
+        grid-column: 1 / -1;
+        width: 100%;
+    }
 }

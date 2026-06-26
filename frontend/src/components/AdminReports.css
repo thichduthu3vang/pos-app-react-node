@@ -1,221 +1,331 @@
-.admin-reports-page {
+.admin-report-page {
     min-height: 100vh;
 }
 
-.admin-reports-header {
-    background: white;
-    border: 1px solid var(--border);
-    border-radius: 24px;
-    padding: 22px;
+.admin-report-hero {
+    position: relative;
+    overflow: hidden;
+    background:
+        linear-gradient(135deg, rgba(255, 253, 249, 0.96), rgba(248, 243, 234, 0.94));
+    border: 1px solid rgba(221, 208, 188, 0.9);
+    border-radius: 30px;
+    padding: 26px;
     margin-bottom: 24px;
-    box-shadow: 0 14px 35px rgba(80, 52, 27, 0.08);
+    box-shadow: 0 12px 42px rgba(63, 45, 25, 0.1);
     display: flex;
     justify-content: space-between;
     gap: 18px;
     align-items: center;
 }
 
-.admin-reports-header h2 {
+.admin-report-hero::after {
+    content: "";
+    position: absolute;
+    right: -80px;
+    top: -80px;
+    width: 220px;
+    height: 220px;
+    background: radial-gradient(circle, rgba(196, 159, 86, 0.22), transparent 64%);
+    pointer-events: none;
+}
+
+.admin-report-hero h2 {
     margin: 0;
-    font-size: 32px;
+    font-family: var(--font-display, "Playfair Display", Georgia, serif);
+    font-size: 40px;
+    font-weight: 600;
+    color: #3f2d19;
 }
 
-.admin-reports-header p {
+.admin-report-hero p {
     margin: 8px 0 0;
-    color: var(--muted);
+    color: #6b5540;
 }
 
-.admin-reports-refresh {
-    background: var(--primary);
+.admin-report-hero button {
+    position: relative;
+    z-index: 1;
+    background: linear-gradient(135deg, #3f2d19, #5a3d22);
     color: white;
-    padding: 12px 18px;
-    border-radius: 14px;
-    font-weight: 800;
-}
-
-.admin-reports-filter {
-    background: white;
-    border: 1px solid var(--border);
-    border-radius: 22px;
-    padding: 18px;
-    margin-bottom: 20px;
-    display: grid;
-    grid-template-columns: 220px 220px 160px;
-    gap: 16px;
-    align-items: end;
-    box-shadow: 0 14px 35px rgba(80, 52, 27, 0.08);
-}
-
-.admin-reports-filter label {
-    color: var(--muted);
-    font-weight: 800;
-    font-size: 14px;
-}
-
-.admin-reports-filter input {
-    width: 100%;
-    margin-top: 8px;
-    border: 1px solid var(--border);
-    background: var(--soft);
-    padding: 12px 13px;
-    border-radius: 14px;
-    outline: none;
-}
-
-.admin-reports-filter button {
-    background: var(--green);
-    color: white;
-    padding: 13px;
-    border-radius: 14px;
+    padding: 13px 18px;
+    border-radius: 999px;
     font-weight: 900;
+    box-shadow: 0 10px 30px rgba(63, 45, 25, 0.12);
+}
+
+.admin-report-hero button:hover {
+    background: linear-gradient(135deg, #c49f56, #d9ba74);
+    color: #2c1f10;
+}
+
+.admin-report-filter-card,
+.admin-report-card {
+    background: rgba(255, 253, 249, 0.95);
+    border: 1px solid #ddd0bc;
+    border-radius: 28px;
+    padding: 22px;
+    margin-bottom: 24px;
+    box-shadow: 0 10px 38px rgba(63, 45, 25, 0.08);
+    backdrop-filter: blur(18px);
+}
+
+.admin-report-filter-card {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 14px;
+    align-items: end;
+}
+
+.admin-report-filter-card label {
+    display: grid;
+    gap: 8px;
+    color: #6b5540;
+    font-size: 13px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+.admin-report-filter-card input,
+.admin-report-filter-card select {
+    width: 100%;
+    border: 1px solid #ddd0bc;
+    background: #f8f3ea;
+    padding: 13px 14px;
+    border-radius: 16px;
+    outline: none;
+    color: #241910;
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.admin-report-filter-card input:disabled {
+    opacity: 0.8;
+    cursor: not-allowed;
 }
 
 .admin-report-stats {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 14px;
-    margin-bottom: 20px;
-}
-
-.admin-report-stats div,
-.payment-method-card,
-.admin-report-section {
-    background: white;
-    border: 1px solid var(--border);
-    border-radius: 22px;
-    box-shadow: 0 14px 35px rgba(80, 52, 27, 0.08);
-}
-
-.admin-report-stats div {
-    padding: 18px;
-}
-
-.admin-report-stats span {
-    display: block;
-    color: var(--muted);
-    margin-bottom: 8px;
-    font-size: 14px;
-}
-
-.admin-report-stats strong {
-    font-size: 24px;
-    color: var(--primary-dark);
-}
-
-.admin-report-section {
-    padding: 20px;
-    margin-bottom: 20px;
-}
-
-.admin-report-section-header {
-    display: flex;
-    justify-content: space-between;
-    gap: 14px;
-    align-items: center;
-    margin-bottom: 16px;
-}
-
-.admin-report-section-header h3 {
-    margin: 0;
-    font-size: 24px;
-}
-
-.admin-report-section-header span {
-    background: var(--soft);
-    border: 1px solid var(--border);
-    color: var(--primary-dark);
-    padding: 8px 12px;
-    border-radius: 999px;
-    font-weight: 900;
-}
-
-.payment-method-grid {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 14px;
-}
-
-.payment-method-card {
-    padding: 16px;
-}
-
-.payment-method-card span {
-    display: block;
-    color: var(--muted);
-    margin-bottom: 8px;
-}
-
-.payment-method-card strong {
-    color: var(--primary-dark);
-    font-size: 20px;
-}
-
-.daily-revenue-list,
-.report-order-list {
-    display: grid;
-    gap: 10px;
-}
-
-.daily-revenue-row,
-.report-order-item {
-    background: var(--soft);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 14px;
-    display: flex;
-    justify-content: space-between;
+    grid-template-columns: repeat(auto-fit, minmax(185px, 1fr));
     gap: 16px;
-    align-items: center;
+    margin-bottom: 24px;
 }
 
-.daily-revenue-row strong,
-.report-order-item strong {
-    color: var(--primary-dark);
-    font-size: 20px;
+.admin-report-stat {
+    position: relative;
+    overflow: hidden;
+    background: rgba(255, 253, 249, 0.95);
+    border: 1px solid #ddd0bc;
+    border-radius: 24px;
+    padding: 20px;
+    box-shadow: 0 8px 30px rgba(63, 45, 25, 0.08);
 }
 
-.report-order-item h4 {
-    margin: 0 0 6px;
-    font-size: 18px;
+.admin-report-stat::after {
+    content: "";
+    position: absolute;
+    right: -38px;
+    bottom: -38px;
+    width: 120px;
+    height: 120px;
+    background: radial-gradient(circle, rgba(196, 159, 86, 0.16), transparent 66%);
 }
 
-.report-order-item p {
-    margin: 4px 0;
-    color: var(--muted);
+.admin-report-stat span {
+    display: block;
+    color: #6b5540;
+    font-size: 12px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 10px;
+}
+
+.admin-report-stat strong {
+    position: relative;
+    z-index: 1;
+    display: block;
+    font-family: var(--font-display, "Playfair Display", Georgia, serif);
+    font-size: 31px;
+    font-weight: 600;
+    color: #3f2d19;
+    line-height: 1.15;
+}
+
+.admin-report-stat.revenue {
+    background: linear-gradient(135deg, #3f2d19, #5a3d22);
+    border-color: rgba(196, 159, 86, 0.35);
+}
+
+.admin-report-stat.revenue span {
+    color: rgba(213, 196, 175, 0.82);
+}
+
+.admin-report-stat.revenue strong {
+    color: #d9ba74;
+}
+
+.admin-report-stat.cancelled {
+    background: #fff5f3;
+}
+
+.admin-report-card h3 {
+    margin: 0 0 18px;
+    font-family: var(--font-display, "Playfair Display", Georgia, serif);
+    font-size: 28px;
+    font-weight: 600;
+    color: #3f2d19;
 }
 
 .admin-report-empty {
-    border: 1px dashed var(--border);
-    border-radius: 18px;
-    padding: 34px;
+    border: 1px dashed #c9b89e;
+    background: #f8f3ea;
+    border-radius: 20px;
+    padding: 30px;
     text-align: center;
-    color: var(--muted);
+    color: #6b5540;
+    font-weight: 900;
+}
+
+.admin-report-chart-list {
+    display: grid;
+    gap: 14px;
+}
+
+.admin-report-bar-item {
+    background: #f8f3ea;
+    border: 1px solid #ddd0bc;
+    border-radius: 20px;
+    padding: 15px;
+}
+
+.admin-report-bar-top {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 9px;
+    color: #3f2d19;
+    font-weight: 900;
+}
+
+.admin-report-progress {
+    height: 16px;
     background: white;
+    border: 1px solid #ddd0bc;
+    border-radius: 999px;
+    overflow: hidden;
 }
 
-@media (max-width: 1200px) {
-
-    .admin-report-stats,
-    .payment-method-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-
-    .admin-reports-filter {
-        grid-template-columns: 1fr;
-    }
+.admin-report-progress div {
+    height: 100%;
+    border-radius: 999px;
 }
 
-@media (max-width: 700px) {
+.admin-report-progress .green {
+    background: linear-gradient(90deg, #2f8f5b, #44a86d);
+}
 
-    .admin-reports-header,
-    .daily-revenue-row,
-    .report-order-item {
+.admin-report-progress .brown {
+    background: linear-gradient(90deg, #3f2d19, #c49f56);
+}
+
+.admin-report-table-wrap {
+    overflow-x: auto;
+}
+
+.admin-report-table {
+    width: 100%;
+    min-width: 900px;
+    border-collapse: collapse;
+}
+
+.admin-report-table th {
+    text-align: left;
+    padding: 13px 11px;
+    border-bottom: 1px solid #ddd0bc;
+    color: #6b5540;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+}
+
+.admin-report-table td {
+    padding: 14px 11px;
+    border-bottom: 1px solid #ddd0bc;
+    vertical-align: top;
+    color: #3f2d19;
+}
+
+.admin-report-table tbody tr:hover {
+    background: #f8f3ea;
+}
+
+.admin-report-table td strong {
+    color: #3f2d19;
+}
+
+.admin-report-table small {
+    display: block;
+    margin-top: 4px;
+    color: #6b5540;
+}
+
+.payment-status,
+.order-status {
+    display: inline-block;
+    padding: 7px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 900;
+}
+
+.payment-status.paid {
+    background: #ddf7e8;
+    color: #2f8f5b;
+}
+
+.payment-status.unpaid {
+    background: #fff1d6;
+    color: #9a6500;
+}
+
+.order-status {
+    background: #f0e5c8;
+    color: #3f2d19;
+}
+
+.order-status.pending {
+    background: #fff1d6;
+    color: #9a6500;
+}
+
+.order-status.preparing {
+    background: #e8efff;
+    color: #3c6fa6;
+}
+
+.order-status.completed {
+    background: #ddf7e8;
+    color: #2f8f5b;
+}
+
+.order-status.cancelled {
+    background: #ffe6e3;
+    color: #b94a3d;
+}
+
+@media (max-width: 760px) {
+    .admin-report-hero {
         flex-direction: column;
         align-items: flex-start;
     }
 
-    .admin-report-stats,
-    .payment-method-grid {
-        grid-template-columns: 1fr;
+    .admin-report-hero h2 {
+        font-size: 32px;
+    }
+
+    .admin-report-bar-top {
+        display: grid;
     }
 }

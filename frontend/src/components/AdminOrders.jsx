@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import api from "../api";
+import "./AdminOrders.css";
 
 function AdminOrders({ onOrdersChanged }) {
     const adminRole = localStorage.getItem("adminRole");
@@ -177,54 +178,27 @@ function AdminOrders({ onOrdersChanged }) {
             : "Tất cả chi nhánh";
 
     return (
-        <section style={{ minHeight: "100vh" }}>
-            <div
-                style={{
-                    background: "white",
-                    border: "1px solid var(--border)",
-                    borderRadius: 24,
-                    padding: 22,
-                    marginBottom: 24,
-                    boxShadow: "0 14px 35px rgba(80, 52, 27, 0.08)"
-                }}
-            >
-                <h2 style={{ margin: 0, fontSize: 32 }}>Admin - Quản lý đơn hàng</h2>
-                <p style={{ margin: "8px 0 0", color: "var(--muted)" }}>
-                    Xem, lọc, cập nhật trạng thái và thanh toán đơn hàng theo từng chi
-                    nhánh.
-                </p>
+        <section className="admin-orders-page">
+            <div className="admin-orders-hero">
+                <div>
+                    <h2>Admin - Quản lý đơn hàng</h2>
+                    <p>
+                        Xem, lọc, cập nhật trạng thái và thanh toán đơn hàng theo từng chi nhánh.
+                    </p>
+                </div>
+
+                <button onClick={loadOrders}>Làm mới</button>
             </div>
 
-            <div
-                style={{
-                    background: "white",
-                    border: "1px solid var(--border)",
-                    borderRadius: 24,
-                    padding: 20,
-                    marginBottom: 24,
-                    display: "grid",
-                    gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-                    gap: 14,
-                    alignItems: "end"
-                }}
-            >
-                <label style={labelStyle}>
+            <div className="admin-orders-filters">
+                <label>
                     Chi nhánh
                     {isStaff ? (
-                        <input
-                            value={branchTitle}
-                            disabled
-                            style={{
-                                ...inputStyle,
-                                opacity: 0.8,
-                                cursor: "not-allowed"
-                            }}
-                        />
+                        <input value={branchTitle} disabled />
                     ) : (
                         <select
                             value={selectedBranchCode}
                             onChange={(e) => setSelectedBranchCode(e.target.value)}
-                            style={inputStyle}
                         >
                             <option value="">Tất cả chi nhánh</option>
 
@@ -237,12 +211,11 @@ function AdminOrders({ onOrdersChanged }) {
                     )}
                 </label>
 
-                <label style={labelStyle}>
+                <label>
                     Trạng thái đơn
                     <select
                         value={statusFilter}
                         onChange={(e) => setStatusFilter(e.target.value)}
-                        style={inputStyle}
                     >
                         <option value="all">Tất cả trạng thái</option>
                         <option value="pending">Đơn mới</option>
@@ -252,128 +225,75 @@ function AdminOrders({ onOrdersChanged }) {
                     </select>
                 </label>
 
-                <label style={labelStyle}>
+                <label>
                     Thanh toán
                     <select
                         value={paymentFilter}
                         onChange={(e) => setPaymentFilter(e.target.value)}
-                        style={inputStyle}
                     >
                         <option value="all">Tất cả thanh toán</option>
                         <option value="paid">Đã thanh toán</option>
                         <option value="unpaid">Chưa thanh toán</option>
                     </select>
                 </label>
-
-                <button
-                    onClick={loadOrders}
-                    style={{
-                        background: "var(--primary)",
-                        color: "white",
-                        padding: 13,
-                        borderRadius: 14,
-                        fontWeight: 900
-                    }}
-                >
-                    Làm mới
-                </button>
             </div>
 
-            <div
-                style={{
-                    background: "white",
-                    border: "1px solid var(--border)",
-                    borderRadius: 24,
-                    padding: 18,
-                    marginBottom: 24,
-                    boxShadow: "0 14px 35px rgba(80, 52, 27, 0.08)"
-                }}
-            >
-                <h3 style={{ margin: "0 0 6px", fontSize: 22 }}>
-                    Đơn hàng của {branchTitle}
-                </h3>
-
-                <p style={{ margin: 0, color: "var(--muted)" }}>
-                    Đang hiển thị {filteredOrders.length} đơn theo bộ lọc hiện tại.
-                </p>
+            <div className="admin-orders-branch-card">
+                <h3>Đơn hàng của {branchTitle}</h3>
+                <p>Đang hiển thị {filteredOrders.length} đơn theo bộ lọc hiện tại.</p>
             </div>
 
-            <div
-                style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-                    gap: 16,
-                    marginBottom: 24
-                }}
-            >
-                <div className="sidebar-box" style={{ margin: 0 }}>
-                    <span className="label">Doanh thu</span>
+            <div className="admin-orders-summary">
+                <div className="admin-order-stat revenue">
+                    <span>Doanh thu</span>
                     <strong>{formatMoney(summary.revenue)}</strong>
                 </div>
 
-                <div className="sidebar-box" style={{ margin: 0 }}>
-                    <span className="label">Tổng đơn</span>
+                <div className="admin-order-stat">
+                    <span>Tổng đơn</span>
                     <strong>{summary.totalOrders}</strong>
                 </div>
 
-                <div className="sidebar-box" style={{ margin: 0 }}>
-                    <span className="label">Đã thanh toán</span>
+                <div className="admin-order-stat">
+                    <span>Đã thanh toán</span>
                     <strong>{summary.paidOrders}</strong>
                 </div>
 
-                <div className="sidebar-box" style={{ margin: 0 }}>
-                    <span className="label">Chưa thanh toán</span>
+                <div className="admin-order-stat">
+                    <span>Chưa thanh toán</span>
                     <strong>{summary.unpaidOrders}</strong>
                 </div>
 
-                <div className="sidebar-box" style={{ margin: 0 }}>
-                    <span className="label">Đã hủy</span>
+                <div className="admin-order-stat cancelled">
+                    <span>Đã hủy</span>
                     <strong>{summary.cancelledOrders}</strong>
                 </div>
             </div>
 
             {loading ? (
-                <div style={emptyStyle}>Đang tải đơn hàng...</div>
+                <div className="admin-orders-empty">Đang tải đơn hàng...</div>
             ) : filteredOrders.length === 0 ? (
-                <div style={emptyStyle}>Không có đơn hàng nào theo bộ lọc này.</div>
+                <div className="admin-orders-empty">
+                    Không có đơn hàng nào theo bộ lọc này.
+                </div>
             ) : (
-                <div style={{ display: "grid", gap: 14 }}>
+                <div className="admin-orders-list">
                     {filteredOrders.map((order) => (
-                        <article
-                            key={order._id}
-                            style={{
-                                background: "white",
-                                border: "1px solid var(--border)",
-                                borderRadius: 22,
-                                padding: 18,
-                                boxShadow: "0 14px 35px rgba(80, 52, 27, 0.08)"
-                            }}
-                        >
-                            <div
-                                style={{
-                                    display: "grid",
-                                    gridTemplateColumns: "1fr auto",
-                                    gap: 16,
-                                    marginBottom: 14
-                                }}
-                            >
+                        <article className="admin-order-card" key={order._id}>
+                            <div className="admin-order-head">
                                 <div>
-                                    <h3 style={{ margin: "0 0 6px", fontSize: 22 }}>
-                                        {order.tableName || "Takeaway"}
-                                    </h3>
+                                    <h3>{order.tableName || "Takeaway"}</h3>
 
-                                    <p style={{ margin: "4px 0", color: "var(--muted)" }}>
+                                    <p>
                                         Chi nhánh:{" "}
                                         <strong>
                                             {order.branchName || order.branchCode || "Chưa gán"}
                                         </strong>
                                     </p>
 
-                                    <p style={{ margin: "4px 0", color: "var(--muted)" }}>
-                                        Khách: {order.customerName || "Không có"}
-                                    </p>
+                                    <p>Khách: {order.customerName || "Không có"}</p>
 
-                                    <p style={{ margin: "4px 0", color: "var(--muted)" }}>
+                                    <p>
                                         Thời gian:{" "}
                                         {order.createdAt
                                             ? new Date(order.createdAt).toLocaleString("vi-VN")
@@ -381,64 +301,22 @@ function AdminOrders({ onOrdersChanged }) {
                                     </p>
                                 </div>
 
-                                <div style={{ textAlign: "right" }}>
-                                    <strong style={{ display: "block", fontSize: 24 }}>
-                                        {formatMoney(order.totalAmount)}
-                                    </strong>
+                                <div className="admin-order-price-box">
+                                    <strong>{formatMoney(order.totalAmount)}</strong>
 
-                                    <span
-                                        style={{
-                                            display: "inline-block",
-                                            marginTop: 8,
-                                            background:
-                                                order.paymentStatus === "paid" ? "#ddf7e8" : "#fff1d6",
-                                            color:
-                                                order.paymentStatus === "paid"
-                                                    ? "var(--green)"
-                                                    : "#9a6500",
-                                            padding: "8px 11px",
-                                            borderRadius: 999,
-                                            fontWeight: 900,
-                                            fontSize: 12
-                                        }}
-                                    >
+                                    <span className={`payment-pill ${order.paymentStatus}`}>
                                         {getPaymentStatusText(order.paymentStatus)}
                                     </span>
 
-                                    <br />
-
-                                    <span
-                                        style={{
-                                            display: "inline-block",
-                                            marginTop: 8,
-                                            background:
-                                                order.status === "cancelled" ? "#ffe6e3" : "var(--soft)",
-                                            color:
-                                                order.status === "cancelled"
-                                                    ? "var(--red)"
-                                                    : "var(--text)",
-                                            padding: "8px 11px",
-                                            borderRadius: 999,
-                                            fontWeight: 900,
-                                            fontSize: 12
-                                        }}
-                                    >
+                                    <span className={`order-status-pill ${order.status}`}>
                                         {getOrderStatusText(order.status)}
                                     </span>
                                 </div>
                             </div>
 
-                            <div
-                                style={{
-                                    background: "var(--soft)",
-                                    border: "1px solid var(--border)",
-                                    borderRadius: 16,
-                                    padding: 14,
-                                    marginBottom: 14
-                                }}
-                            >
+                            <div className="admin-order-items">
                                 {(order.items || []).map((item, index) => (
-                                    <p key={index} style={{ margin: "5px 0" }}>
+                                    <p key={index}>
                                         <strong>
                                             {item.quantity} x {item.name}
                                         </strong>{" "}
@@ -448,29 +326,17 @@ function AdminOrders({ onOrdersChanged }) {
                                 ))}
                             </div>
 
-                            <div
-                                style={{
-                                    display: "grid",
-                                    gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))",
-                                    gap: 8
-                                }}
-                            >
-                                <button
-                                    style={buttonStyle}
-                                    onClick={() => updateOrderStatus(order._id, "preparing")}
-                                >
+                            <div className="admin-order-actions">
+                                <button onClick={() => updateOrderStatus(order._id, "preparing")}>
                                     Pha chế
                                 </button>
 
-                                <button
-                                    style={buttonStyle}
-                                    onClick={() => updateOrderStatus(order._id, "completed")}
-                                >
+                                <button onClick={() => updateOrderStatus(order._id, "completed")}>
                                     Xong
                                 </button>
 
                                 <button
-                                    style={dangerButtonStyle}
+                                    className="danger"
                                     onClick={() => updateOrderStatus(order._id, "cancelled")}
                                 >
                                     Hủy
@@ -480,21 +346,21 @@ function AdminOrders({ onOrdersChanged }) {
                                     order.status !== "cancelled" && (
                                         <>
                                             <button
-                                                style={greenButtonStyle}
+                                                className="pay"
                                                 onClick={() => payOrder(order._id, "cash")}
                                             >
                                                 Tiền mặt
                                             </button>
 
                                             <button
-                                                style={greenButtonStyle}
+                                                className="pay"
                                                 onClick={() => payOrder(order._id, "bank")}
                                             >
                                                 Chuyển khoản
                                             </button>
 
                                             <button
-                                                style={greenButtonStyle}
+                                                className="pay"
                                                 onClick={() => payOrder(order._id, "card")}
                                             >
                                                 Thẻ
@@ -504,7 +370,7 @@ function AdminOrders({ onOrdersChanged }) {
                             </div>
 
                             {order.paymentStatus === "paid" && (
-                                <p style={{ margin: "12px 0 0", color: "var(--muted)" }}>
+                                <p className="admin-order-method">
                                     Phương thức:{" "}
                                     <strong>{getPaymentMethodText(order.paymentMethod)}</strong>
                                 </p>
@@ -516,53 +382,5 @@ function AdminOrders({ onOrdersChanged }) {
         </section>
     );
 }
-
-const labelStyle = {
-    display: "grid",
-    gap: 7,
-    fontWeight: 800
-};
-
-const inputStyle = {
-    border: "1px solid var(--border)",
-    background: "var(--soft)",
-    padding: 12,
-    borderRadius: 14,
-    fontWeight: 800
-};
-
-const emptyStyle = {
-    background: "white",
-    border: "1px dashed var(--border)",
-    borderRadius: 24,
-    padding: 40,
-    textAlign: "center",
-    color: "var(--muted)",
-    fontWeight: 900
-};
-
-const buttonStyle = {
-    background: "#21170f",
-    color: "white",
-    padding: 12,
-    borderRadius: 12,
-    fontWeight: 900
-};
-
-const greenButtonStyle = {
-    background: "var(--green)",
-    color: "white",
-    padding: 12,
-    borderRadius: 12,
-    fontWeight: 900
-};
-
-const dangerButtonStyle = {
-    background: "var(--red)",
-    color: "white",
-    padding: 12,
-    borderRadius: 12,
-    fontWeight: 900
-};
 
 export default AdminOrders;

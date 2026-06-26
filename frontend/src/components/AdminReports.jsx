@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import api from "../api";
+import "./AdminReports.css";
 
 const getToday = () => {
     return new Date().toISOString().slice(0, 10);
@@ -170,76 +171,51 @@ function AdminReports() {
     );
 
     return (
-        <section style={{ minHeight: "100vh" }}>
-            <div
-                style={{
-                    background: "white",
-                    border: "1px solid var(--border)",
-                    borderRadius: 24,
-                    padding: 22,
-                    marginBottom: 24,
-                    boxShadow: "0 14px 35px rgba(80, 52, 27, 0.08)"
-                }}
-            >
-                <h2 style={{ margin: 0, fontSize: 32 }}>
-                    Admin - Báo cáo doanh thu
-                </h2>
+        <section className="admin-report-page">
+            <div className="admin-report-hero">
+                <div>
+                    <h2>Admin - Báo cáo doanh thu</h2>
 
-                <p style={{ margin: "8px 0 0", color: "var(--muted)" }}>
-                    Xem doanh thu tổng hoặc lọc theo từng chi nhánh.
-                </p>
+                    <p>Xem doanh thu tổng hoặc lọc theo từng chi nhánh.</p>
+                </div>
+
+                <button
+                    onClick={() => {
+                        loadReport();
+                        loadBranchTodayReport();
+                    }}
+                >
+                    Làm mới
+                </button>
             </div>
 
-            <div
-                style={{
-                    background: "white",
-                    border: "1px solid var(--border)",
-                    borderRadius: 24,
-                    padding: 20,
-                    marginBottom: 24,
-                    display: "grid",
-                    gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))",
-                    gap: 14,
-                    alignItems: "end"
-                }}
-            >
-                <label style={labelStyle}>
+            <div className="admin-report-filter-card">
+                <label>
                     Từ ngày
                     <input
                         type="date"
                         value={startDate}
                         onChange={(e) => setStartDate(e.target.value)}
-                        style={inputStyle}
                     />
                 </label>
 
-                <label style={labelStyle}>
+                <label>
                     Đến ngày
                     <input
                         type="date"
                         value={endDate}
                         onChange={(e) => setEndDate(e.target.value)}
-                        style={inputStyle}
                     />
                 </label>
 
-                <label style={labelStyle}>
+                <label>
                     Chi nhánh
                     {isStaff ? (
-                        <input
-                            value={branchLabel}
-                            disabled
-                            style={{
-                                ...inputStyle,
-                                opacity: 0.8,
-                                cursor: "not-allowed"
-                            }}
-                        />
+                        <input value={branchLabel} disabled />
                     ) : (
                         <select
                             value={selectedBranchCode}
                             onChange={(e) => setSelectedBranchCode(e.target.value)}
-                            style={inputStyle}
                         >
                             <option value="">Tất cả chi nhánh</option>
 
@@ -251,118 +227,68 @@ function AdminReports() {
                         </select>
                     )}
                 </label>
-
-                <button
-                    onClick={() => {
-                        loadReport();
-                        loadBranchTodayReport();
-                    }}
-                    style={{
-                        background: "var(--primary)",
-                        color: "white",
-                        padding: 13,
-                        borderRadius: 14,
-                        fontWeight: 900
-                    }}
-                >
-                    Làm mới
-                </button>
             </div>
 
-            <div
-                style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-                    gap: 16,
-                    marginBottom: 24
-                }}
-            >
-                <div className="sidebar-box" style={{ margin: 0 }}>
-                    <span className="label">Doanh thu</span>
+            <div className="admin-report-stats">
+                <div className="admin-report-stat revenue">
+                    <span>Doanh thu</span>
                     <strong>{formatMoney(report.totalRevenue)}</strong>
                 </div>
 
-                <div className="sidebar-box" style={{ margin: 0 }}>
-                    <span className="label">Tổng đơn</span>
+                <div className="admin-report-stat">
+                    <span>Tổng đơn</span>
                     <strong>{report.totalOrders || 0}</strong>
                 </div>
 
-                <div className="sidebar-box" style={{ margin: 0 }}>
-                    <span className="label">Đã thanh toán</span>
+                <div className="admin-report-stat">
+                    <span>Đã thanh toán</span>
                     <strong>{report.totalPaidOrders || 0}</strong>
                 </div>
 
-                <div className="sidebar-box" style={{ margin: 0 }}>
-                    <span className="label">Chưa thanh toán</span>
+                <div className="admin-report-stat">
+                    <span>Chưa thanh toán</span>
                     <strong>{report.totalUnpaidOrders || 0}</strong>
                 </div>
 
-                <div className="sidebar-box" style={{ margin: 0 }}>
-                    <span className="label">Đơn đã hủy</span>
+                <div className="admin-report-stat cancelled">
+                    <span>Đơn đã hủy</span>
                     <strong>{report.totalCancelledOrders || 0}</strong>
                 </div>
 
-                <div className="sidebar-box" style={{ margin: 0 }}>
-                    <span className="label">Trung bình / đơn</span>
+                <div className="admin-report-stat">
+                    <span>Trung bình / đơn</span>
                     <strong>{formatMoney(report.averageOrderValue)}</strong>
                 </div>
             </div>
 
-            <div
-                style={{
-                    background: "white",
-                    border: "1px solid var(--border)",
-                    borderRadius: 24,
-                    padding: 20,
-                    marginBottom: 24,
-                    boxShadow: "0 14px 35px rgba(80, 52, 27, 0.08)"
-                }}
-            >
-                <h3 style={{ margin: "0 0 16px", fontSize: 22 }}>
-                    Biểu đồ doanh thu theo ngày - {branchLabel}
-                </h3>
+            <div className="admin-report-card">
+                <h3>Biểu đồ doanh thu theo ngày - {branchLabel}</h3>
 
                 {loading ? (
-                    <div style={emptyStyle}>Đang tải báo cáo...</div>
+                    <div className="admin-report-empty">Đang tải báo cáo...</div>
                 ) : report.revenueByDay.length === 0 ? (
-                    <div style={emptyStyle}>Không có doanh thu trong khoảng ngày này.</div>
+                    <div className="admin-report-empty">
+                        Không có doanh thu trong khoảng ngày này.
+                    </div>
                 ) : (
-                    <div style={{ display: "grid", gap: 14 }}>
+                    <div className="admin-report-chart-list">
                         {report.revenueByDay.map((item) => (
-                            <div key={item.date}>
-                                <div
-                                    style={{
-                                        display: "flex",
-                                        justifyContent: "space-between",
-                                        gap: 12,
-                                        marginBottom: 7,
-                                        fontWeight: 900
-                                    }}
-                                >
+                            <div className="admin-report-bar-item" key={item.date}>
+                                <div className="admin-report-bar-top">
                                     <span>{item.date}</span>
                                     <span>
                                         {formatMoney(item.revenue)} · {item.orders} đơn
                                     </span>
                                 </div>
 
-                                <div
-                                    style={{
-                                        height: 16,
-                                        background: "var(--soft)",
-                                        border: "1px solid var(--border)",
-                                        borderRadius: 999,
-                                        overflow: "hidden"
-                                    }}
-                                >
+                                <div className="admin-report-progress">
                                     <div
+                                        className="green"
                                         style={{
-                                            height: "100%",
                                             width: `${Math.max(
                                                 (Number(item.revenue || 0) / maxRevenueByDay) * 100,
                                                 4
-                                            )}%`,
-                                            background: "var(--green)",
-                                            borderRadius: 999
+                                            )}%`
                                         }}
                                     />
                                 </div>
@@ -373,35 +299,18 @@ function AdminReports() {
             </div>
 
             {isOwner && (
-                <div
-                    style={{
-                        background: "white",
-                        border: "1px solid var(--border)",
-                        borderRadius: 24,
-                        padding: 20,
-                        marginBottom: 24,
-                        boxShadow: "0 14px 35px rgba(80, 52, 27, 0.08)"
-                    }}
-                >
-                    <h3 style={{ margin: "0 0 16px", fontSize: 22 }}>
-                        So sánh doanh thu chi nhánh hôm nay
-                    </h3>
+                <div className="admin-report-card">
+                    <h3>So sánh doanh thu chi nhánh hôm nay</h3>
 
                     {branchTodayReport.branches.length === 0 ? (
-                        <div style={emptyStyle}>Hôm nay chưa có doanh thu chi nhánh.</div>
+                        <div className="admin-report-empty">
+                            Hôm nay chưa có doanh thu chi nhánh.
+                        </div>
                     ) : (
-                        <div style={{ display: "grid", gap: 14 }}>
+                        <div className="admin-report-chart-list">
                             {branchTodayReport.branches.map((branch) => (
-                                <div key={branch.branchCode}>
-                                    <div
-                                        style={{
-                                            display: "flex",
-                                            justifyContent: "space-between",
-                                            gap: 12,
-                                            marginBottom: 7,
-                                            fontWeight: 900
-                                        }}
-                                    >
+                                <div className="admin-report-bar-item" key={branch.branchCode}>
+                                    <div className="admin-report-bar-top">
                                         <span>
                                             {branch.branchName} - {branch.branchCode}
                                         </span>
@@ -411,26 +320,16 @@ function AdminReports() {
                                         </span>
                                     </div>
 
-                                    <div
-                                        style={{
-                                            height: 16,
-                                            background: "var(--soft)",
-                                            border: "1px solid var(--border)",
-                                            borderRadius: 999,
-                                            overflow: "hidden"
-                                        }}
-                                    >
+                                    <div className="admin-report-progress">
                                         <div
+                                            className="brown"
                                             style={{
-                                                height: "100%",
                                                 width: `${Math.max(
                                                     (Number(branch.totalRevenue || 0) /
                                                         maxBranchRevenue) *
                                                     100,
                                                     4
-                                                )}%`,
-                                                background: "var(--primary)",
-                                                borderRadius: 999
+                                                )}%`
                                             }}
                                         />
                                     </div>
@@ -441,118 +340,71 @@ function AdminReports() {
                 </div>
             )}
 
-            <div
-                style={{
-                    background: "white",
-                    border: "1px solid var(--border)",
-                    borderRadius: 24,
-                    padding: 20,
-                    marginBottom: 24,
-                    boxShadow: "0 14px 35px rgba(80, 52, 27, 0.08)",
-                    overflowX: "auto"
-                }}
-            >
-                <h3 style={{ margin: "0 0 16px", fontSize: 22 }}>
-                    Danh sách đơn trong báo cáo - {branchLabel}
-                </h3>
+            <div className="admin-report-card table-card">
+                <h3>Danh sách đơn trong báo cáo - {branchLabel}</h3>
 
                 {loading ? (
-                    <div style={emptyStyle}>Đang tải danh sách đơn...</div>
+                    <div className="admin-report-empty">Đang tải danh sách đơn...</div>
                 ) : report.orders.length === 0 ? (
-                    <div style={emptyStyle}>Không có đơn nào trong báo cáo.</div>
+                    <div className="admin-report-empty">
+                        Không có đơn nào trong báo cáo.
+                    </div>
                 ) : (
-                    <table
-                        style={{
-                            width: "100%",
-                            borderCollapse: "collapse",
-                            minWidth: 900
-                        }}
-                    >
-                        <thead>
-                            <tr>
-                                <th style={thStyle}>Thời gian</th>
-                                <th style={thStyle}>Chi nhánh</th>
-                                <th style={thStyle}>Bàn</th>
-                                <th style={thStyle}>Khách</th>
-                                <th style={thStyle}>Tổng tiền</th>
-                                <th style={thStyle}>Thanh toán</th>
-                                <th style={thStyle}>Trạng thái</th>
-                            </tr>
-                        </thead>
-
-                        <tbody>
-                            {report.orders.map((order) => (
-                                <tr key={order._id}>
-                                    <td style={tdStyle}>
-                                        {order.createdAt
-                                            ? new Date(order.createdAt).toLocaleString("vi-VN")
-                                            : "Không rõ"}
-                                    </td>
-
-                                    <td style={tdStyle}>
-                                        {order.branchName || order.branchCode || "Chưa gán"}
-                                    </td>
-
-                                    <td style={tdStyle}>{order.tableName || "Takeaway"}</td>
-
-                                    <td style={tdStyle}>{order.customerName || "Không có"}</td>
-
-                                    <td style={tdStyle}>
-                                        <strong>{formatMoney(order.totalAmount)}</strong>
-                                    </td>
-
-                                    <td style={tdStyle}>
-                                        {getPaymentStatusText(order.paymentStatus)}
-                                        <br />
-                                        <small>{getPaymentMethodText(order.paymentMethod)}</small>
-                                    </td>
-
-                                    <td style={tdStyle}>{getOrderStatusText(order.status)}</td>
+                    <div className="admin-report-table-wrap">
+                        <table className="admin-report-table">
+                            <thead>
+                                <tr>
+                                    <th>Thời gian</th>
+                                    <th>Chi nhánh</th>
+                                    <th>Bàn</th>
+                                    <th>Khách</th>
+                                    <th>Tổng tiền</th>
+                                    <th>Thanh toán</th>
+                                    <th>Trạng thái</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+
+                            <tbody>
+                                {report.orders.map((order) => (
+                                    <tr key={order._id}>
+                                        <td>
+                                            {order.createdAt
+                                                ? new Date(order.createdAt).toLocaleString("vi-VN")
+                                                : "Không rõ"}
+                                        </td>
+
+                                        <td>{order.branchName || order.branchCode || "Chưa gán"}</td>
+
+                                        <td>{order.tableName || "Takeaway"}</td>
+
+                                        <td>{order.customerName || "Không có"}</td>
+
+                                        <td>
+                                            <strong>{formatMoney(order.totalAmount)}</strong>
+                                        </td>
+
+                                        <td>
+                                            <span className={`payment-status ${order.paymentStatus}`}>
+                                                {getPaymentStatusText(order.paymentStatus)}
+                                            </span>
+
+                                            <small>{getPaymentMethodText(order.paymentMethod)}</small>
+                                        </td>
+
+                                        <td>
+                                            <span className={`order-status ${order.status}`}>
+                                                {getOrderStatusText(order.status)}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 )}
             </div>
         </section>
     );
 }
-
-const labelStyle = {
-    display: "grid",
-    gap: 7,
-    fontWeight: 800
-};
-
-const inputStyle = {
-    border: "1px solid var(--border)",
-    background: "var(--soft)",
-    padding: 12,
-    borderRadius: 14,
-    fontWeight: 800
-};
-
-const emptyStyle = {
-    border: "1px dashed var(--border)",
-    borderRadius: 18,
-    padding: 30,
-    textAlign: "center",
-    color: "var(--muted)",
-    fontWeight: 900
-};
-
-const thStyle = {
-    textAlign: "left",
-    padding: "12px 10px",
-    borderBottom: "1px solid var(--border)",
-    color: "var(--muted)",
-    fontSize: 13
-};
-
-const tdStyle = {
-    padding: "12px 10px",
-    borderBottom: "1px solid var(--border)",
-    verticalAlign: "top"
-};
 
 export default AdminReports;
