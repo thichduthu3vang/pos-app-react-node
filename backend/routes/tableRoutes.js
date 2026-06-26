@@ -1,12 +1,25 @@
 import express from "express";
 import Table from "../models/Table.js";
 import Branch from "../models/Branch.js";
+import { verifyToken, requireBranchAccess } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-router.get("/", async (req, res) => {
+const canAccessTable = (req, table) => {
+    if (req.user?.role === "owner") return true;
+
+    const userBranchCode = req.user?.branchCode
+        ? req.user.branchCode.toUpperCase()
+        : "";
+
+    const tableBranchCode = table.branchCode ? table.branchCode.toUpperCase() : "";
+
+    return userBranchCode && tableBranchCode && userBranchCode === tableBranchCode;
+};
+
+router.get("/", verifyToken, requireBranchAccess, async (req, res) => {
     try {
-        const { branchCode } = req.query;
+        const branchCode = req.allowedBranchCode || req.query.branchCode;
 
         const filter = {};
 
@@ -29,6 +42,7 @@ router.get("/", async (req, res) => {
     }
 });
 
+// Route này để QR khách hàng vẫn đọc được thông tin bàn
 router.get("/:id", async (req, res) => {
     try {
         const table = await Table.findById(req.params.id);
@@ -53,9 +67,11 @@ router.get("/:id", async (req, res) => {
     }
 });
 
-router.post("/", async (req, res) => {
+router.post("/", verifyToken, requireBranchAccess, async (req, res) => {
     try {
-        const { branchCode, name, area, status } = req.body;
+        const { name, area, status } = req.body;
+
+        const branchCode = req.allowedBranchCode || req.body.branchCode;
 
         if (!branchCode) {
             return res.status(400).json({
@@ -106,15 +122,37 @@ router.post("/", async (req, res) => {
     }
 });
 
-router.patch("/:id", async (req, res) => {
+router.patch("/:id", verifyToken, async (req, res) => {
     try {
-        const { branchCode, name, area, status } = req.body;
+        const { name, area, status } = req.body;
+
+        let branchCode = req.body.branchCode;
+
+        const table = await Table.findById(req.params.id);
+
+        if (!table) {
+            return res.status(404).json({
+                success: false,
+                message: "Table not found"
+            });
+        }
+
+        if (!canAccessTable(req, table)) {
+            return res.status(403).json({
+                success: false,
+                message: "Bạn không có quyền sửa bàn của chi nhánh khác"
+            });
+        }
 
         if (!name) {
             return res.status(400).json({
                 success: false,
                 message: "Table name is required"
             });
+        }
+
+        if (req.user?.role === "staff") {
+            branchCode = req.user.branchCode;
         }
 
         let branchPayload = {};
@@ -139,28 +177,22 @@ router.patch("/:id", async (req, res) => {
             };
         }
 
-        const updatedTable = await Table.findByIdAndUpdate(
-            req.params.id,
-            {
-                ...branchPayload,
-                name,
-                area,
-                status
-            },
-            { new: true }
-        );
+        table.name = name;
+        table.area = area || "Khu chính";
+        table.status = status || table.status;
 
-        if (!updatedTable) {
-            return res.status(404).json({
-                success: false,
-                message: "Table not found"
-            });
+        if (branchPayload.branchCode) {
+            table.branchId = branchPayload.branchId;
+            table.branchCode = branchPayload.branchCode;
+            table.branchName = branchPayload.branchName;
         }
+
+        await table.save();
 
         res.json({
             success: true,
             message: "Table updated successfully",
-            data: updatedTable
+            data: table
         });
     } catch (error) {
         res.status(500).json({
@@ -171,7 +203,7 @@ router.patch("/:id", async (req, res) => {
     }
 });
 
-router.patch("/:id/status", async (req, res) => {
+router.patch("/:id/status", verifyToken, async (req, res) => {
     try {
         const { status } = req.body;
 
@@ -184,29 +216,34 @@ router.patch("/:id/status", async (req, res) => {
             });
         }
 
-        const payload = {
-            status
-        };
+        const table = await Table.findById(req.params.id);
 
-        if (status === "available") {
-            payload.currentOrderId = null;
-        }
-
-        const updatedTable = await Table.findByIdAndUpdate(req.params.id, payload, {
-            new: true
-        });
-
-        if (!updatedTable) {
+        if (!table) {
             return res.status(404).json({
                 success: false,
                 message: "Table not found"
             });
         }
 
+        if (!canAccessTable(req, table)) {
+            return res.status(403).json({
+                success: false,
+                message: "Bạn không có quyền đổi trạng thái bàn của chi nhánh khác"
+            });
+        }
+
+        table.status = status;
+
+        if (status === "available") {
+            table.currentOrderId = null;
+        }
+
+        await table.save();
+
         res.json({
             success: true,
             message: "Table status updated",
-            data: updatedTable
+            data: table
         });
     } catch (error) {
         res.status(500).json({
@@ -217,21 +254,30 @@ router.patch("/:id/status", async (req, res) => {
     }
 });
 
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", verifyToken, async (req, res) => {
     try {
-        const deletedTable = await Table.findByIdAndDelete(req.params.id);
+        const table = await Table.findById(req.params.id);
 
-        if (!deletedTable) {
+        if (!table) {
             return res.status(404).json({
                 success: false,
                 message: "Table not found"
             });
         }
 
+        if (!canAccessTable(req, table)) {
+            return res.status(403).json({
+                success: false,
+                message: "Bạn không có quyền xóa bàn của chi nhánh khác"
+            });
+        }
+
+        await Table.findByIdAndDelete(req.params.id);
+
         res.json({
             success: true,
             message: "Table deleted successfully",
-            data: deletedTable
+            data: table
         });
     } catch (error) {
         res.status(500).json({

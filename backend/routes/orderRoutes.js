@@ -2,12 +2,17 @@ import express from "express";
 import Order from "../models/Order.js";
 import Table from "../models/Table.js";
 import Branch from "../models/Branch.js";
+import {
+    verifyToken,
+    optionalAuth,
+    requireBranchAccess
+} from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-router.get("/", async (req, res) => {
+router.get("/", verifyToken, requireBranchAccess, async (req, res) => {
     try {
-        const { branchCode } = req.query;
+        const branchCode = req.allowedBranchCode || req.query.branchCode;
 
         const filter = {};
 
@@ -30,7 +35,7 @@ router.get("/", async (req, res) => {
     }
 });
 
-router.post("/", async (req, res) => {
+router.post("/", optionalAuth, async (req, res) => {
     try {
         const {
             branchCode,
@@ -51,9 +56,7 @@ router.post("/", async (req, res) => {
         let selectedTable = null;
         let selectedBranch = null;
 
-        const cleanBranchCode = branchCode
-            ? branchCode.trim().toUpperCase()
-            : "";
+        const cleanBranchCode = branchCode ? branchCode.trim().toUpperCase() : "";
 
         if (tableId) {
             selectedTable = await Table.findById(tableId);
@@ -87,8 +90,17 @@ router.post("/", async (req, res) => {
             }
         }
 
-        const finalBranchCode =
-            selectedTable?.branchCode || cleanBranchCode || "";
+        const finalBranchCode = selectedTable?.branchCode || cleanBranchCode || "";
+
+        if (
+            req.user?.role === "staff" &&
+            finalBranchCode.toUpperCase() !== req.user.branchCode?.toUpperCase()
+        ) {
+            return res.status(403).json({
+                success: false,
+                message: "Bạn không có quyền tạo order cho chi nhánh khác"
+            });
+        }
 
         if (finalBranchCode) {
             selectedBranch = await Branch.findOne({
@@ -144,7 +156,7 @@ router.post("/", async (req, res) => {
     }
 });
 
-router.patch("/:id/status", async (req, res) => {
+router.patch("/:id/status", verifyToken, async (req, res) => {
     try {
         const { status } = req.body;
 
@@ -157,23 +169,33 @@ router.patch("/:id/status", async (req, res) => {
             });
         }
 
-        const updatedOrder = await Order.findByIdAndUpdate(
-            req.params.id,
-            { status },
-            { new: true }
-        );
+        const order = await Order.findById(req.params.id);
 
-        if (!updatedOrder) {
+        if (!order) {
             return res.status(404).json({
                 success: false,
                 message: "Order not found"
             });
         }
 
+        if (
+            req.user?.role === "staff" &&
+            order.branchCode?.toUpperCase() !== req.user.branchCode?.toUpperCase()
+        ) {
+            return res.status(403).json({
+                success: false,
+                message: "Bạn không có quyền cập nhật đơn của chi nhánh khác"
+            });
+        }
+
+        order.status = status;
+
+        await order.save();
+
         res.json({
             success: true,
             message: "Order status updated",
-            data: updatedOrder
+            data: order
         });
     } catch (error) {
         res.status(500).json({
@@ -184,7 +206,7 @@ router.patch("/:id/status", async (req, res) => {
     }
 });
 
-router.patch("/:id/pay", async (req, res) => {
+router.patch("/:id/pay", verifyToken, async (req, res) => {
     try {
         const { paymentMethod } = req.body;
 
@@ -203,6 +225,16 @@ router.patch("/:id/pay", async (req, res) => {
             return res.status(404).json({
                 success: false,
                 message: "Order not found"
+            });
+        }
+
+        if (
+            req.user?.role === "staff" &&
+            order.branchCode?.toUpperCase() !== req.user.branchCode?.toUpperCase()
+        ) {
+            return res.status(403).json({
+                success: false,
+                message: "Bạn không có quyền thanh toán đơn của chi nhánh khác"
             });
         }
 

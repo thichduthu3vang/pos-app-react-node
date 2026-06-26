@@ -12,7 +12,6 @@ export const verifyToken = (req, res, next) => {
         }
 
         const token = authHeader.split(" ")[1];
-
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
         req.user = decoded;
@@ -23,6 +22,27 @@ export const verifyToken = (req, res, next) => {
             success: false,
             message: "Token không hợp lệ hoặc đã hết hạn"
         });
+    }
+};
+
+export const optionalAuth = (req, res, next) => {
+    try {
+        const authHeader = req.headers.authorization;
+
+        if (!authHeader || !authHeader.startsWith("Bearer ")) {
+            req.user = null;
+            return next();
+        }
+
+        const token = authHeader.split(" ")[1];
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+        req.user = decoded;
+
+        next();
+    } catch (error) {
+        req.user = null;
+        next();
     }
 };
 
@@ -54,26 +74,22 @@ export const requireBranchAccess = (req, res, next) => {
     }
 
     const requestBranchCode =
-        req.query.branchCode ||
-        req.body.branchCode ||
-        req.params.branchCode ||
+        req.query?.branchCode ||
+        req.body?.branchCode ||
+        req.params?.branchCode ||
         "";
 
-    if (!requestBranchCode) {
-        req.query.branchCode = userBranchCode;
-        req.body.branchCode = userBranchCode;
-        return next();
-    }
-
-    if (requestBranchCode.toUpperCase() !== userBranchCode) {
+    if (
+        requestBranchCode &&
+        requestBranchCode.toUpperCase() !== userBranchCode
+    ) {
         return res.status(403).json({
             success: false,
             message: "Bạn không có quyền truy cập chi nhánh này"
         });
     }
 
-    req.query.branchCode = userBranchCode;
-    req.body.branchCode = userBranchCode;
+    req.allowedBranchCode = userBranchCode;
 
     next();
 };

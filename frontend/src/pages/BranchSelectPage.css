@@ -1,94 +1,118 @@
 .branch-select-page {
     min-height: 100vh;
-    background: linear-gradient(135deg, #21170f, #8b5a2b);
-    padding: 28px;
+    background:
+        radial-gradient(circle at top left, rgba(196, 159, 86, 0.18), transparent 32%),
+        linear-gradient(135deg, #f9f6f2, #f3ebdf);
+    padding: 30px;
     display: grid;
     place-items: center;
+    font-family: var(--font-body, "Be Vietnam Pro", Arial, sans-serif);
 }
 
 .branch-select-card {
-    width: min(980px, 100%);
-    background: #fffaf3;
-    border: 1px solid #ead9c7;
-    border-radius: 30px;
-    padding: 28px;
-    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.28);
+    width: min(1080px, 100%);
+    background: rgba(255, 253, 249, 0.94);
+    border: 1px solid rgba(221, 208, 188, 0.9);
+    border-radius: 34px;
+    padding: 30px;
+    box-shadow: 0 28px 90px rgba(63, 45, 25, 0.14);
+    backdrop-filter: blur(18px);
 }
 
 .branch-select-header {
     display: flex;
     align-items: center;
-    gap: 16px;
-    margin-bottom: 24px;
+    gap: 18px;
+    margin-bottom: 26px;
+    padding-bottom: 22px;
+    border-bottom: 1px solid #ddd0bc;
 }
 
 .branch-logo {
-    width: 58px;
-    height: 58px;
-    background: #21170f;
-    color: white;
-    border-radius: 18px;
+    width: 66px;
+    height: 66px;
+    border-radius: 24px;
     display: grid;
     place-items: center;
-    font-size: 30px;
+    background: linear-gradient(135deg, #3f2d19, #5a3d22);
+    color: #d9ba74;
+    font-size: 34px;
+    box-shadow: 0 14px 38px rgba(196, 159, 86, 0.22);
 }
 
 .branch-select-header h1 {
     margin: 0;
-    font-size: 36px;
-    color: #21170f;
+    font-family: var(--font-display, "Playfair Display", Georgia, serif);
+    font-size: 44px;
+    color: #3f2d19;
+    font-weight: 600;
 }
 
 .branch-select-header p {
     margin: 6px 0 0;
-    color: #7b6b5c;
+    color: #6b5540;
 }
 
 .branch-warning {
     background: #fff1d6;
-    border: 1px solid #f2c36b;
+    border: 1px solid rgba(196, 159, 86, 0.42);
     color: #7a4d00;
-    padding: 14px 16px;
-    border-radius: 16px;
-    margin-bottom: 20px;
-    font-weight: 800;
+    padding: 15px 17px;
+    border-radius: 18px;
+    margin-bottom: 22px;
+    font-weight: 900;
 }
 
 .branch-empty {
-    border: 1px dashed #d8c1aa;
-    border-radius: 20px;
-    padding: 34px;
+    border: 1px dashed #c9b89e;
+    background: #f8f3ea;
+    border-radius: 22px;
+    padding: 36px;
     text-align: center;
-    color: #7b6b5c;
-    font-weight: 800;
+    color: #6b5540;
+    font-weight: 900;
 }
 
 .branch-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: 16px;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 18px;
 }
 
 .branch-card {
+    position: relative;
+    overflow: hidden;
     background: white;
-    border: 1px solid #ead9c7;
-    border-radius: 22px;
-    padding: 20px;
+    border: 1px solid #ddd0bc;
+    border-radius: 26px;
+    padding: 22px;
     text-decoration: none;
-    color: #21170f;
-    transition: 0.2s ease;
+    color: #241910;
+    transition: all 0.25s ease;
+    box-shadow: 0 4px 20px rgba(63, 45, 25, 0.07);
+}
+
+.branch-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(circle at top right, rgba(196, 159, 86, 0.16), transparent 32%);
+    pointer-events: none;
 }
 
 .branch-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 16px 34px rgba(80, 52, 27, 0.16);
+    transform: translateY(-4px);
+    box-shadow: 0 18px 48px rgba(63, 45, 25, 0.13);
+    border-color: rgba(196, 159, 86, 0.55);
 }
 
 .branch-code {
+    position: relative;
     display: inline-block;
-    background: #21170f;
-    color: white;
-    padding: 7px 11px;
+    background: #3f2d19;
+    color: #d9ba74;
+    padding: 7px 12px;
     border-radius: 999px;
     font-size: 12px;
     font-weight: 900;
@@ -96,35 +120,46 @@
 }
 
 .branch-card h2 {
+    position: relative;
     margin: 0 0 8px;
-    font-size: 24px;
+    font-family: var(--font-display, "Playfair Display", Georgia, serif);
+    font-size: 28px;
+    color: #3f2d19;
 }
 
 .branch-card p {
+    position: relative;
     margin: 0 0 18px;
-    color: #7b6b5c;
-    min-height: 36px;
+    color: #6b5540;
+    min-height: 38px;
 }
 
 .branch-card strong {
-    color: #137f3f;
+    position: relative;
+    color: #2f8f5b;
+    font-weight: 900;
 }
 
 .branch-footer-actions {
     display: flex;
     justify-content: center;
     gap: 12px;
-    margin-top: 24px;
+    margin-top: 26px;
     flex-wrap: wrap;
 }
 
 .branch-footer-actions a {
-    background: #21170f;
+    background: #3f2d19;
     color: white;
     text-decoration: none;
-    padding: 12px 16px;
-    border-radius: 14px;
+    padding: 12px 17px;
+    border-radius: 999px;
     font-weight: 900;
+}
+
+.branch-footer-actions a:hover {
+    background: #c49f56;
+    color: #2c1f10;
 }
 
 @media (max-width: 700px) {
@@ -133,11 +168,11 @@
     }
 
     .branch-select-card {
-        padding: 18px;
-        border-radius: 24px;
+        padding: 20px;
+        border-radius: 26px;
     }
 
     .branch-select-header h1 {
-        font-size: 28px;
+        font-size: 32px;
     }
 }

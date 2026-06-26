@@ -2,8 +2,12 @@ import express from "express";
 import bcrypt from "bcryptjs";
 import AdminUser from "../models/AdminUser.js";
 import Branch from "../models/Branch.js";
+import { verifyToken, requireOwner } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
+
+router.use(verifyToken);
+router.use(requireOwner);
 
 router.get("/", async (req, res) => {
     try {
@@ -37,7 +41,9 @@ router.post("/", async (req, res) => {
 
         const cleanEmail = email.trim().toLowerCase();
 
-        const existedUser = await AdminUser.findOne({ email: cleanEmail });
+        const existedUser = await AdminUser.findOne({
+            email: cleanEmail
+        });
 
         if (existedUser) {
             return res.status(400).json({

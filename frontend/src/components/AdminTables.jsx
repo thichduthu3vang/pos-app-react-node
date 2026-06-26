@@ -1,93 +1,96 @@
 import { useEffect, useState } from "react";
 import QRCode from "qrcode";
 import api from "../api";
-import "./AdminTables.css";
 
-function AdminTables({ onTablesChanged }) {
+function AdminTables() {
+    const adminRole = localStorage.getItem("adminRole");
+    const adminBranchCode = localStorage.getItem("adminBranchCode");
+    const adminBranchName = localStorage.getItem("adminBranchName");
+
+    const isStaff = adminRole === "staff";
+    const staffBranchCode = adminBranchCode ? adminBranchCode.toUpperCase() : "";
+
     const [branches, setBranches] = useState([]);
-    const [selectedBranchCode, setSelectedBranchCode] = useState("");
     const [tables, setTables] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const [selectedBranchCode, setSelectedBranchCode] = useState(
+        isStaff ? staffBranchCode : ""
+    );
     const [editingId, setEditingId] = useState(null);
-    const [qrModal, setQrModal] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [qrImages, setQrImages] = useState({});
 
     const [form, setForm] = useState({
-        branchCode: "",
+        branchCode: isStaff ? staffBranchCode : "",
         name: "",
         area: "Khu chính",
         status: "available"
     });
 
+    const currentBranchCode = isStaff ? staffBranchCode : selectedBranchCode;
+
     const loadBranches = async () => {
         try {
             const response = await api.get("/api/branches");
+
             const activeBranches = (response.data.data || []).filter(
                 (branch) => branch.isActive
             );
 
             setBranches(activeBranches);
-
-            if (activeBranches.length > 0 && !selectedBranchCode) {
-                const firstBranchCode = activeBranches[0].code;
-
-                setSelectedBranchCode(firstBranchCode);
-                setForm((currentForm) => ({
-                    ...currentForm,
-                    branchCode: firstBranchCode
-                }));
-            }
         } catch (error) {
             console.error("Cannot load branches:", error);
-            alert("Không thể tải danh sách chi nhánh");
+            setBranches([]);
         }
     };
 
-    const loadTables = async (branchCode = selectedBranchCode) => {
+    const loadTables = async () => {
         try {
             setLoading(true);
 
+            if (isStaff && !staffBranchCode) {
+                alert("Tài khoản nhân viên này chưa được gán chi nhánh");
+                setTables([]);
+                return;
+            }
+
             const response = await api.get("/api/tables", {
-                params: branchCode ? { branchCode } : {}
+                params: currentBranchCode ? { branchCode: currentBranchCode } : {}
             });
 
             setTables(response.data.data || []);
         } catch (error) {
             console.error("Cannot load tables:", error);
-            alert("Không thể tải danh sách bàn");
+            alert(error.response?.data?.message || "Không thể tải danh sách bàn");
+            setTables([]);
         } finally {
             setLoading(false);
         }
     };
 
-    useEffect(() => {
-        loadBranches();
-    }, []);
+    const selectedBranch = branches.find(
+        (branch) => branch.code === currentBranchCode
+    );
 
-    useEffect(() => {
-        if (selectedBranchCode) {
-            loadTables(selectedBranchCode);
-        }
-    }, [selectedBranchCode]);
+    const branchLabel = isStaff
+        ? `${adminBranchName || selectedBranch?.name || "Chi nhánh"} - ${staffBranchCode}`
+        : selectedBranch
+            ? `${selectedBranch.name} - ${selectedBranch.code}`
+            : "Tất cả chi nhánh";
 
-    const resetForm = () => {
+    const resetFormOnly = () => {
+        setEditingId(null);
+
         setForm({
-            branchCode: selectedBranchCode || "",
+            branchCode: isStaff ? staffBranchCode : currentBranchCode,
             name: "",
             area: "Khu chính",
             status: "available"
         });
-
-        setEditingId(null);
-    };
-
-    const handleChange = (field, value) => {
-        setForm({
-            ...form,
-            [field]: value
-        });
     };
 
     const changeSelectedBranch = (branchCode) => {
+        if (isStaff) return;
+
         const cleanBranchCode = branchCode || "";
 
         setSelectedBranchCode(cleanBranchCode);
@@ -101,174 +104,115 @@ function AdminTables({ onTablesChanged }) {
         });
     };
 
-    const getStatusText = (status) => {
+    const handleChange = (field, value) => {
+        if (isStaff && field === "branchCode") return;
+
+        setForm({
+            ...form,
+            [field]: value
+        });
+    };
+
+    const getTableStatusText = (status) => {
         if (status === "available") return "Trống";
         if (status === "occupied") return "Có khách";
         if (status === "cleaning") return "Chờ dọn";
         if (status === "reserved") return "Đã đặt";
-        return status;
+        return status || "Không rõ";
     };
 
-    const getOrderLink = (table) => {
+    const getTableStatusColor = (status) => {
+        if (status === "available") return "#ddf7e8";
+        if (status === "occupied") return "#fff1d6";
+        if (status === "cleaning") return "#e8efff";
+        if (status === "reserved") return "#ffe6e3";
+        return "var(--soft)";
+    };
+
+    const getQrUrl = (table) => {
         const publicUrl =
             import.meta.env.VITE_PUBLIC_FRONTEND_URL || window.location.origin;
 
-        const branchCode = table.branchCode || selectedBranchCode;
+        const branchCode = table.branchCode || currentBranchCode;
 
         return `${publicUrl}/qr/${branchCode}/${table._id}`;
     };
 
-    const copyOrderLink = async (table) => {
-        const link = getOrderLink(table);
-
+    const generateQr = async (table) => {
         try {
-            await navigator.clipboard.writeText(link);
-            alert(`Đã copy link QR order của ${table.name}`);
-        } catch (error) {
-            console.error("Cannot copy link:", error);
-            alert(link);
-        }
-    };
+            const url = getQrUrl(table);
 
-    const openQrModal = async (table) => {
-        try {
-            const link = getOrderLink(table);
-
-            const qrDataUrl = await QRCode.toDataURL(link, {
-                width: 320,
+            const qrDataUrl = await QRCode.toDataURL(url, {
+                width: 240,
                 margin: 2
             });
 
-            setQrModal({
-                table,
-                link,
-                qrDataUrl
-            });
+            setQrImages((prev) => ({
+                ...prev,
+                [table._id]: qrDataUrl
+            }));
         } catch (error) {
-            console.error("Cannot create QR:", error);
-            alert("Không thể tạo QR cho bàn này");
+            console.error("Cannot generate QR:", error);
+            alert("Không thể tạo mã QR");
         }
     };
 
-    const printQr = () => {
-        if (!qrModal) return;
+    const generateAllQrImages = async (tableList) => {
+        try {
+            const qrMap = {};
 
-        const printHtml = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="UTF-8" />
-          <title>QR Order - ${qrModal.table.name}</title>
-          <style>
-            * {
-              box-sizing: border-box;
-            }
+            await Promise.all(
+                tableList.map(async (table) => {
+                    const url = getQrUrl(table);
 
-            body {
-              margin: 0;
-              padding: 24px;
-              font-family: Arial, sans-serif;
-              background: white;
-              color: #111;
-            }
+                    const qrDataUrl = await QRCode.toDataURL(url, {
+                        width: 240,
+                        margin: 2
+                    });
 
-            .qr-print-card {
-              width: 360px;
-              margin: 0 auto;
-              border: 2px solid #111;
-              border-radius: 20px;
-              padding: 22px;
-              text-align: center;
-            }
+                    qrMap[table._id] = qrDataUrl;
+                })
+            );
 
-            h1 {
-              margin: 0 0 8px;
-              font-size: 28px;
-            }
-
-            h2 {
-              margin: 0 0 8px;
-              font-size: 22px;
-            }
-
-            h3 {
-              margin: 0 0 18px;
-              font-size: 16px;
-              color: #555;
-            }
-
-            img {
-              width: 260px;
-              height: 260px;
-              display: block;
-              margin: 0 auto 16px;
-            }
-
-            p {
-              margin: 6px 0;
-              font-size: 14px;
-            }
-
-            .small {
-              font-size: 12px;
-              word-break: break-all;
-              color: #555;
-            }
-
-            @media print {
-              body {
-                padding: 0;
-              }
-
-              .qr-print-card {
-                border: 2px solid #111;
-                margin: 0 auto;
-              }
-            }
-          </style>
-        </head>
-
-        <body>
-          <div class="qr-print-card">
-            <h1>POS Coffee</h1>
-            <h2>${qrModal.table.name}</h2>
-            <h3>${qrModal.table.branchName || qrModal.table.branchCode || ""}</h3>
-
-            <img src="${qrModal.qrDataUrl}" alt="QR Order" />
-
-            <p><strong>Quét QR để gọi món tại bàn</strong></p>
-            <p>Khu vực: ${qrModal.table.area || "Khu chính"}</p>
-            <p class="small">${qrModal.link}</p>
-          </div>
-
-          <script>
-            window.onload = function () {
-              setTimeout(function () {
-                window.print();
-              }, 300);
-            };
-          </script>
-        </body>
-      </html>
-    `;
-
-        const printWindow = window.open("", "_blank", "width=430,height=650");
-
-        if (!printWindow) {
-            alert("Trình duyệt đang chặn cửa sổ in. Hãy cho phép pop-up rồi thử lại.");
-            return;
+            setQrImages(qrMap);
+        } catch (error) {
+            console.error("Cannot generate all QR:", error);
         }
+    };
 
-        printWindow.document.open();
-        printWindow.document.write(printHtml);
-        printWindow.document.close();
+    const redrawQr = async (table) => {
+        try {
+            setQrImages((prev) => ({
+                ...prev,
+                [table._id]: ""
+            }));
+
+            await generateQr(table);
+
+            alert("Đã vẽ lại QR");
+        } catch (error) {
+            console.error("Cannot redraw QR:", error);
+            alert("Không thể vẽ lại QR");
+        }
+    };
+
+    const copyQrUrl = async (table) => {
+        try {
+            await navigator.clipboard.writeText(getQrUrl(table));
+            alert("Đã copy link QR");
+        } catch (error) {
+            console.error("Cannot copy QR URL:", error);
+            alert("Không thể copy link QR");
+        }
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        if (!form.branchCode) {
-            alert("Vui lòng chọn chi nhánh");
+        const branchCode = isStaff ? staffBranchCode : form.branchCode;
+
+        if (!branchCode) {
+            alert("Vui lòng chọn chi nhánh cho bàn");
             return;
         }
 
@@ -277,28 +221,24 @@ function AdminTables({ onTablesChanged }) {
             return;
         }
 
-        const payload = {
-            branchCode: form.branchCode,
-            name: form.name,
-            area: form.area,
-            status: form.status
-        };
-
         try {
+            const payload = {
+                branchCode,
+                name: form.name,
+                area: form.area,
+                status: form.status
+            };
+
             if (editingId) {
                 await api.patch(`/api/tables/${editingId}`, payload);
                 alert("Cập nhật bàn thành công");
             } else {
                 await api.post("/api/tables", payload);
-                alert("Thêm bàn thành công");
+                alert("Tạo bàn thành công");
             }
 
-            resetForm();
-            loadTables(selectedBranchCode);
-
-            if (onTablesChanged) {
-                onTablesChanged();
-            }
+            resetFormOnly();
+            loadTables();
         } catch (error) {
             console.error("Cannot save table:", error);
             alert(error.response?.data?.message || "Không thể lưu bàn");
@@ -309,7 +249,7 @@ function AdminTables({ onTablesChanged }) {
         setEditingId(table._id);
 
         setForm({
-            branchCode: table.branchCode || selectedBranchCode || "",
+            branchCode: isStaff ? staffBranchCode : table.branchCode || "",
             name: table.name || "",
             area: table.area || "Khu chính",
             status: table.status || "available"
@@ -319,6 +259,16 @@ function AdminTables({ onTablesChanged }) {
             top: 0,
             behavior: "smooth"
         });
+    };
+
+    const updateTableStatus = async (table, status) => {
+        try {
+            await api.patch(`/api/tables/${table._id}/status`, { status });
+            loadTables();
+        } catch (error) {
+            console.error("Cannot update table status:", error);
+            alert(error.response?.data?.message || "Không thể đổi trạng thái bàn");
+        }
     };
 
     const deleteTable = async (table) => {
@@ -331,95 +281,204 @@ function AdminTables({ onTablesChanged }) {
         try {
             await api.delete(`/api/tables/${table._id}`);
             alert("Xóa bàn thành công");
-
-            loadTables(selectedBranchCode);
-
-            if (onTablesChanged) {
-                onTablesChanged();
-            }
+            loadTables();
         } catch (error) {
             console.error("Cannot delete table:", error);
             alert(error.response?.data?.message || "Không thể xóa bàn");
         }
     };
 
-    const quickSetStatus = async (table, status) => {
-        try {
-            await api.patch(`/api/tables/${table._id}/status`, {
-                status
-            });
+    useEffect(() => {
+        loadBranches();
+    }, []);
 
-            loadTables(selectedBranchCode);
+    useEffect(() => {
+        loadTables();
+        resetFormOnly();
+    }, [currentBranchCode]);
 
-            if (onTablesChanged) {
-                onTablesChanged();
-            }
-        } catch (error) {
-            console.error("Cannot update table status:", error);
-            alert(error.response?.data?.message || "Không thể đổi trạng thái bàn");
+    useEffect(() => {
+        if (tables.length === 0) {
+            setQrImages({});
+            return;
         }
-    };
 
-    const selectedBranch = branches.find(
-        (branch) => branch.code === selectedBranchCode
-    );
+        generateAllQrImages(tables);
+    }, [tables, currentBranchCode]);
 
     return (
-        <section className="admin-tables-page">
-            <div className="admin-tables-header">
-                <div>
-                    <h2>Admin - Quản lý bàn</h2>
-                    <p>Tạo bàn theo từng chi nhánh, tạo QR order riêng cho từng bàn.</p>
-                </div>
-
-                <button
-                    className="admin-tables-refresh"
-                    onClick={() => loadTables(selectedBranchCode)}
-                >
-                    Làm mới
-                </button>
+        <section style={{ minHeight: "100vh" }}>
+            <div
+                style={{
+                    background: "white",
+                    border: "1px solid var(--border)",
+                    borderRadius: 24,
+                    padding: 22,
+                    marginBottom: 24,
+                    boxShadow: "0 14px 35px rgba(80, 52, 27, 0.08)"
+                }}
+            >
+                <h2 style={{ margin: 0, fontSize: 32 }}>Admin - Quản lý bàn</h2>
+                <p style={{ margin: "8px 0 0", color: "var(--muted)" }}>
+                    Tạo bàn, quản lý trạng thái bàn và tạo mã QR order theo từng chi nhánh.
+                </p>
             </div>
 
-            {branches.length === 0 ? (
-                <div className="admin-table-empty">
-                    Chưa có chi nhánh hoạt động. Hãy vào Admin chi nhánh để tạo chi nhánh
-                    trước.
-                </div>
-            ) : (
-                <>
-                    <div className="admin-branch-filter-card">
-                        <div>
-                            <h3>Chi nhánh đang quản lý</h3>
-                            <p>
-                                {selectedBranch
-                                    ? `${selectedBranch.name} - ${selectedBranch.code}`
-                                    : "Chưa chọn chi nhánh"}
-                            </p>
-                        </div>
+            <div
+                style={{
+                    display: "grid",
+                    gridTemplateColumns: "380px 1fr",
+                    gap: 24,
+                    alignItems: "start"
+                }}
+            >
+                <form
+                    onSubmit={handleSubmit}
+                    style={{
+                        background: "white",
+                        border: "1px solid var(--border)",
+                        borderRadius: 24,
+                        padding: 20,
+                        boxShadow: "0 14px 35px rgba(80, 52, 27, 0.08)",
+                        position: "sticky",
+                        top: 24
+                    }}
+                >
+                    <h3 style={{ margin: "0 0 18px", fontSize: 24 }}>
+                        {editingId ? "Sửa bàn" : "Tạo bàn mới"}
+                    </h3>
 
+                    <label style={labelStyle}>
+                        Chi nhánh
+                        {isStaff ? (
+                            <input
+                                value={branchLabel}
+                                disabled
+                                style={{
+                                    ...inputStyle,
+                                    opacity: 0.8,
+                                    cursor: "not-allowed"
+                                }}
+                            />
+                        ) : (
+                            <select
+                                value={form.branchCode}
+                                onChange={(e) => {
+                                    changeSelectedBranch(e.target.value);
+                                }}
+                                style={inputStyle}
+                            >
+                                <option value="">Chọn chi nhánh</option>
+
+                                {branches.map((branch) => (
+                                    <option key={branch._id} value={branch.code}>
+                                        {branch.name} - {branch.code}
+                                    </option>
+                                ))}
+                            </select>
+                        )}
+                    </label>
+
+                    <label style={labelStyle}>
+                        Tên bàn
+                        <input
+                            value={form.name}
+                            onChange={(e) => handleChange("name", e.target.value)}
+                            placeholder="Ví dụ: Bàn 1"
+                            style={inputStyle}
+                        />
+                    </label>
+
+                    <label style={labelStyle}>
+                        Khu vực
+                        <input
+                            value={form.area}
+                            onChange={(e) => handleChange("area", e.target.value)}
+                            placeholder="Ví dụ: Tầng 1, Sân vườn"
+                            style={inputStyle}
+                        />
+                    </label>
+
+                    <label style={labelStyle}>
+                        Trạng thái
                         <select
-                            value={selectedBranchCode}
-                            onChange={(e) => changeSelectedBranch(e.target.value)}
+                            value={form.status}
+                            onChange={(e) => handleChange("status", e.target.value)}
+                            style={inputStyle}
                         >
-                            {branches.map((branch) => (
-                                <option key={branch._id} value={branch.code}>
-                                    {branch.name} - {branch.code}
-                                </option>
-                            ))}
+                            <option value="available">Trống</option>
+                            <option value="occupied">Có khách</option>
+                            <option value="cleaning">Chờ dọn</option>
+                            <option value="reserved">Đã đặt</option>
                         </select>
+                    </label>
+
+                    <div style={{ display: "grid", gap: 10 }}>
+                        <button
+                            type="submit"
+                            style={{
+                                background: "var(--green)",
+                                color: "white",
+                                padding: 13,
+                                borderRadius: 14,
+                                fontWeight: 900
+                            }}
+                        >
+                            {editingId ? "Lưu cập nhật" : "Tạo bàn"}
+                        </button>
+
+                        {editingId && (
+                            <button
+                                type="button"
+                                onClick={resetFormOnly}
+                                style={{
+                                    background: "#21170f",
+                                    color: "white",
+                                    padding: 13,
+                                    borderRadius: 14,
+                                    fontWeight: 900
+                                }}
+                            >
+                                Hủy sửa
+                            </button>
+                        )}
                     </div>
+                </form>
 
-                    <div className="admin-tables-layout">
-                        <form className="admin-table-form" onSubmit={handleSubmit}>
-                            <h3>{editingId ? "Sửa bàn" : "Thêm bàn mới"}</h3>
-
-                            <label>
-                                Chi nhánh
+                <div>
+                    <div
+                        style={{
+                            background: "white",
+                            border: "1px solid var(--border)",
+                            borderRadius: 24,
+                            padding: 20,
+                            marginBottom: 18,
+                            display: "grid",
+                            gridTemplateColumns: "1fr auto",
+                            gap: 16,
+                            alignItems: "end",
+                            boxShadow: "0 14px 35px rgba(80, 52, 27, 0.08)"
+                        }}
+                    >
+                        <label style={labelStyle}>
+                            Đang xem chi nhánh
+                            {isStaff ? (
+                                <input
+                                    value={branchLabel}
+                                    disabled
+                                    style={{
+                                        ...inputStyle,
+                                        opacity: 0.8,
+                                        cursor: "not-allowed"
+                                    }}
+                                />
+                            ) : (
                                 <select
-                                    value={form.branchCode}
+                                    value={selectedBranchCode}
                                     onChange={(e) => changeSelectedBranch(e.target.value)}
+                                    style={inputStyle}
                                 >
-                                    <option value="">Chọn chi nhánh</option>
+                                    <option value="">Tất cả chi nhánh</option>
 
                                     {branches.map((branch) => (
                                         <option key={branch._id} value={branch.code}>
@@ -427,195 +486,298 @@ function AdminTables({ onTablesChanged }) {
                                         </option>
                                     ))}
                                 </select>
-                            </label>
-
-                            <label>
-                                Tên bàn
-                                <input
-                                    value={form.name}
-                                    onChange={(e) => handleChange("name", e.target.value)}
-                                    placeholder="Ví dụ: Bàn 1"
-                                />
-                            </label>
-
-                            <label>
-                                Khu vực
-                                <input
-                                    value={form.area}
-                                    onChange={(e) => handleChange("area", e.target.value)}
-                                    placeholder="Ví dụ: Tầng 1 / Sân vườn"
-                                />
-                            </label>
-
-                            <label>
-                                Trạng thái
-                                <select
-                                    value={form.status}
-                                    onChange={(e) => handleChange("status", e.target.value)}
-                                >
-                                    <option value="available">Trống</option>
-                                    <option value="occupied">Có khách</option>
-                                    <option value="cleaning">Chờ dọn</option>
-                                    <option value="reserved">Đã đặt</option>
-                                </select>
-                            </label>
-
-                            <div className="admin-table-form-actions">
-                                <button type="submit">
-                                    {editingId ? "Lưu cập nhật" : "Thêm bàn"}
-                                </button>
-
-                                {editingId && (
-                                    <button
-                                        type="button"
-                                        className="secondary"
-                                        onClick={resetForm}
-                                    >
-                                        Hủy sửa
-                                    </button>
-                                )}
-                            </div>
-                        </form>
-
-                        <div className="admin-table-list-card">
-                            <div className="admin-table-list-header">
-                                <h3>Danh sách bàn</h3>
-                                <span>{tables.length} bàn</span>
-                            </div>
-
-                            {loading ? (
-                                <div className="admin-table-empty">Đang tải bàn...</div>
-                            ) : tables.length === 0 ? (
-                                <div className="admin-table-empty">
-                                    Chi nhánh này chưa có bàn nào.
-                                </div>
-                            ) : (
-                                <div className="admin-table-grid">
-                                    {tables.map((table) => (
-                                        <div
-                                            className={`admin-table-card ${table.status}`}
-                                            key={table._id}
-                                        >
-                                            <div className="admin-table-card-top">
-                                                <div>
-                                                    <h4>{table.name}</h4>
-                                                    <p>{table.area}</p>
-                                                    <p>
-                                                        Chi nhánh:{" "}
-                                                        <strong>
-                                                            {table.branchName ||
-                                                                table.branchCode ||
-                                                                "Chưa gán"}
-                                                        </strong>
-                                                    </p>
-                                                </div>
-
-                                                <span>{getStatusText(table.status)}</span>
-                                            </div>
-
-                                            <div className="admin-table-quick-actions">
-                                                <button
-                                                    onClick={() => quickSetStatus(table, "available")}
-                                                >
-                                                    Trống
-                                                </button>
-
-                                                <button
-                                                    onClick={() => quickSetStatus(table, "cleaning")}
-                                                >
-                                                    Chờ dọn
-                                                </button>
-
-                                                <button
-                                                    onClick={() => quickSetStatus(table, "reserved")}
-                                                >
-                                                    Đã đặt
-                                                </button>
-                                            </div>
-
-                                            <div className="admin-table-link">
-                                                <input value={getOrderLink(table)} readOnly />
-
-                                                <button onClick={() => copyOrderLink(table)}>
-                                                    Copy
-                                                </button>
-                                            </div>
-
-                                            <div className="admin-table-qr-actions">
-                                                <button onClick={() => openQrModal(table)}>
-                                                    Xem QR
-                                                </button>
-
-                                                <button onClick={() => copyOrderLink(table)}>
-                                                    Copy link
-                                                </button>
-                                            </div>
-
-                                            <div className="admin-table-actions">
-                                                <button onClick={() => startEdit(table)}>Sửa</button>
-
-                                                <button
-                                                    className="danger"
-                                                    onClick={() => deleteTable(table)}
-                                                >
-                                                    Xóa
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
                             )}
-                        </div>
+                        </label>
+
+                        <button
+                            onClick={loadTables}
+                            style={{
+                                background: "var(--primary)",
+                                color: "white",
+                                padding: 13,
+                                borderRadius: 14,
+                                fontWeight: 900
+                            }}
+                        >
+                            Làm mới
+                        </button>
                     </div>
-                </>
-            )}
 
-            {qrModal && (
-                <div className="qr-modal-overlay">
-                    <div className="qr-modal">
-                        <div className="qr-modal-header">
-                            <div>
-                                <h3>QR Order - {qrModal.table.name}</h3>
-                                <p>
-                                    {qrModal.table.branchName || qrModal.table.branchCode} - Khách
-                                    quét mã này để gọi món tại bàn.
-                                </p>
-                            </div>
-
-                            <button onClick={() => setQrModal(null)}>Đóng</button>
-                        </div>
-
-                        <div className="qr-preview-card">
-                            <h2>POS Coffee</h2>
-                            <h3>{qrModal.table.name}</h3>
-
-                            <p className="qr-branch-name">
-                                {qrModal.table.branchName || qrModal.table.branchCode}
-                            </p>
-
-                            <img src={qrModal.qrDataUrl} alt="QR Order" />
-
-                            <p>Quét QR để gọi món</p>
-
-                            <input value={qrModal.link} readOnly />
-                        </div>
-
-                        <div className="qr-modal-actions">
-                            <button onClick={() => copyOrderLink(qrModal.table)}>
-                                Copy link
-                            </button>
-
-                            <button onClick={printQr}>In QR</button>
-
-                            <button className="secondary" onClick={() => setQrModal(null)}>
-                                Đóng
-                            </button>
-                        </div>
+                    <div
+                        style={{
+                            background: "white",
+                            border: "1px solid var(--border)",
+                            borderRadius: 24,
+                            padding: 20,
+                            marginBottom: 18,
+                            boxShadow: "0 14px 35px rgba(80, 52, 27, 0.08)"
+                        }}
+                    >
+                        <h3 style={{ margin: "0 0 6px", fontSize: 22 }}>
+                            Danh sách bàn - {branchLabel}
+                        </h3>
+                        <p style={{ margin: 0, color: "var(--muted)" }}>
+                            Đang có {tables.length} bàn.
+                        </p>
                     </div>
+
+                    {loading ? (
+                        <div style={emptyStyle}>Đang tải danh sách bàn...</div>
+                    ) : tables.length === 0 ? (
+                        <div style={emptyStyle}>
+                            Chưa có bàn nào trong chi nhánh này.
+                        </div>
+                    ) : (
+                        <div
+                            style={{
+                                display: "grid",
+                                gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+                                gap: 16
+                            }}
+                        >
+                            {tables.map((table) => (
+                                <article
+                                    key={table._id}
+                                    style={{
+                                        background: "white",
+                                        border: "1px solid var(--border)",
+                                        borderRadius: 22,
+                                        padding: 18,
+                                        boxShadow: "0 14px 35px rgba(80, 52, 27, 0.08)"
+                                    }}
+                                >
+                                    <div
+                                        style={{
+                                            display: "flex",
+                                            justifyContent: "space-between",
+                                            gap: 12,
+                                            alignItems: "flex-start",
+                                            marginBottom: 12
+                                        }}
+                                    >
+                                        <div>
+                                            <h3 style={{ margin: "0 0 6px", fontSize: 24 }}>
+                                                {table.name}
+                                            </h3>
+
+                                            <p style={{ margin: "4px 0", color: "var(--muted)" }}>
+                                                {table.area || "Khu chính"}
+                                            </p>
+
+                                            <p style={{ margin: "4px 0", color: "var(--muted)" }}>
+                                                {table.branchName || table.branchCode}
+                                            </p>
+                                        </div>
+
+                                        <span
+                                            style={{
+                                                background: getTableStatusColor(table.status),
+                                                padding: "8px 11px",
+                                                borderRadius: 999,
+                                                fontSize: 12,
+                                                fontWeight: 900
+                                            }}
+                                        >
+                                            {getTableStatusText(table.status)}
+                                        </span>
+                                    </div>
+
+                                    <div
+                                        style={{
+                                            display: "grid",
+                                            gridTemplateColumns: "repeat(2, 1fr)",
+                                            gap: 8,
+                                            marginBottom: 12
+                                        }}
+                                    >
+                                        <button
+                                            onClick={() => updateTableStatus(table, "available")}
+                                            style={smallButtonStyle}
+                                        >
+                                            Trống
+                                        </button>
+
+                                        <button
+                                            onClick={() => updateTableStatus(table, "cleaning")}
+                                            style={smallButtonStyle}
+                                        >
+                                            Chờ dọn
+                                        </button>
+
+                                        <button
+                                            onClick={() => updateTableStatus(table, "reserved")}
+                                            style={smallButtonStyle}
+                                        >
+                                            Đặt trước
+                                        </button>
+
+                                        <button
+                                            onClick={() => updateTableStatus(table, "occupied")}
+                                            style={smallButtonStyle}
+                                        >
+                                            Có khách
+                                        </button>
+                                    </div>
+
+                                    <div
+                                        style={{
+                                            display: "grid",
+                                            gridTemplateColumns: "repeat(2, 1fr)",
+                                            gap: 8,
+                                            marginBottom: 12
+                                        }}
+                                    >
+                                        <button
+                                            onClick={() => startEdit(table)}
+                                            style={darkButtonStyle}
+                                        >
+                                            Sửa
+                                        </button>
+
+                                        <button
+                                            onClick={() => deleteTable(table)}
+                                            style={dangerButtonStyle}
+                                        >
+                                            Xóa
+                                        </button>
+                                    </div>
+
+                                    <div
+                                        style={{
+                                            borderTop: "1px solid var(--border)",
+                                            paddingTop: 12,
+                                            display: "grid",
+                                            gap: 8
+                                        }}
+                                    >
+                                        <button
+                                            onClick={() => redrawQr(table)}
+                                            style={greenButtonStyle}
+                                        >
+                                            Đổi QR
+                                        </button>
+
+                                        <button
+                                            onClick={() => copyQrUrl(table)}
+                                            style={darkButtonStyle}
+                                        >
+                                            Copy link QR
+                                        </button>
+
+                                        <div
+                                            style={{
+                                                background: "var(--soft)",
+                                                border: "1px solid var(--border)",
+                                                borderRadius: 18,
+                                                padding: 14,
+                                                textAlign: "center"
+                                            }}
+                                        >
+                                            {qrImages[table._id] ? (
+                                                <>
+                                                    <img
+                                                        src={qrImages[table._id]}
+                                                        alt={`QR ${table.name}`}
+                                                        style={{
+                                                            width: 180,
+                                                            maxWidth: "100%",
+                                                            borderRadius: 12,
+                                                            background: "white",
+                                                            padding: 8
+                                                        }}
+                                                    />
+
+                                                    <p
+                                                        style={{
+                                                            margin: "10px 0 0",
+                                                            color: "var(--muted)",
+                                                            fontSize: 12,
+                                                            wordBreak: "break-all"
+                                                        }}
+                                                    >
+                                                        {getQrUrl(table)}
+                                                    </p>
+                                                </>
+                                            ) : (
+                                                <p
+                                                    style={{
+                                                        margin: 0,
+                                                        color: "var(--muted)",
+                                                        fontWeight: 800
+                                                    }}
+                                                >
+                                                    Đang tạo QR...
+                                                </p>
+                                            )}
+                                        </div>
+                                    </div>
+                                </article>
+                            ))}
+                        </div>
+                    )}
                 </div>
-            )}
+            </div>
         </section>
     );
 }
+
+const labelStyle = {
+    display: "grid",
+    gap: 7,
+    fontWeight: 800,
+    marginBottom: 14
+};
+
+const inputStyle = {
+    border: "1px solid var(--border)",
+    background: "var(--soft)",
+    padding: 12,
+    borderRadius: 14,
+    fontWeight: 800,
+    width: "100%"
+};
+
+const emptyStyle = {
+    background: "white",
+    border: "1px dashed var(--border)",
+    borderRadius: 24,
+    padding: 40,
+    textAlign: "center",
+    color: "var(--muted)",
+    fontWeight: 900
+};
+
+const smallButtonStyle = {
+    background: "var(--soft)",
+    border: "1px solid var(--border)",
+    color: "var(--text)",
+    padding: 10,
+    borderRadius: 12,
+    fontWeight: 900
+};
+
+const darkButtonStyle = {
+    background: "#21170f",
+    color: "white",
+    padding: 11,
+    borderRadius: 12,
+    fontWeight: 900
+};
+
+const greenButtonStyle = {
+    background: "var(--green)",
+    color: "white",
+    padding: 11,
+    borderRadius: 12,
+    fontWeight: 900
+};
+
+const dangerButtonStyle = {
+    background: "var(--red)",
+    color: "white",
+    padding: 11,
+    borderRadius: 12,
+    fontWeight: 900
+};
 
 export default AdminTables;

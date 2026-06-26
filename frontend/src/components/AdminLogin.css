@@ -1,71 +1,113 @@
+@import url("https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,500&display=swap");
+
 .admin-login-page {
     min-height: 100vh;
-    background: var(--bg);
     display: grid;
     place-items: center;
-    padding: 20px;
+    padding: 28px;
+    background:
+        linear-gradient(90deg, rgba(63, 45, 25, 0.96) 0%, rgba(63, 45, 25, 0.88) 42%, rgba(249, 246, 242, 0.96) 42%),
+        url("https://images.unsplash.com/photo-1600607686527-6fb886090705?q=80&w=2000&auto=format&fit=crop");
+    background-size: cover;
+    background-position: center;
+    font-family: "Be Vietnam Pro", Arial, sans-serif;
 }
 
 .admin-login-card {
-    width: min(430px, 100%);
-    background: white;
-    border: 1px solid var(--border);
-    border-radius: 28px;
-    padding: 28px;
-    box-shadow: 0 18px 50px rgba(80, 52, 27, 0.12);
+    width: min(460px, 100%);
+    background: rgba(255, 253, 249, 0.96);
+    border: 1px solid rgba(196, 159, 86, 0.28);
+    border-radius: 34px;
+    padding: 34px;
+    box-shadow: 0 28px 90px rgba(63, 45, 25, 0.22);
+    backdrop-filter: blur(18px);
 }
 
-.admin-login-icon {
-    width: 62px;
-    height: 62px;
-    border-radius: 20px;
-    background: #21170f;
-    color: white;
+.admin-login-logo {
+    width: 72px;
+    height: 72px;
     display: grid;
     place-items: center;
-    font-size: 30px;
-    margin-bottom: 18px;
+    border-radius: 24px;
+    margin-bottom: 20px;
+    background: linear-gradient(135deg, #3f2d19, #5a3d22);
+    color: #d9ba74;
+    font-size: 34px;
+    box-shadow: 0 16px 44px rgba(196, 159, 86, 0.24);
 }
 
 .admin-login-card h1 {
     margin: 0;
-    font-size: 32px;
+    font-family: "Playfair Display", Georgia, serif;
+    color: #3f2d19;
+    font-size: 44px;
+    font-weight: 600;
 }
 
 .admin-login-card p {
-    margin: 10px 0 22px;
-    color: var(--muted);
-    line-height: 1.5;
+    margin: 8px 0 28px;
+    color: #6b5540;
 }
 
 .admin-login-card label {
     display: block;
-    margin-bottom: 14px;
-    color: var(--muted);
-    font-weight: 800;
-    font-size: 14px;
+    margin-bottom: 16px;
+    color: #6b5540;
+    font-size: 13px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.11em;
 }
 
 .admin-login-card input {
+    width: 100%;
     margin-top: 8px;
+    border: 1px solid #ddd0bc;
+    background: #f8f3ea;
+    color: #241910;
+    padding: 14px 15px;
+    border-radius: 16px;
+    outline: none;
+    font-size: 15px;
+}
+
+.admin-login-card input:focus {
+    border-color: #c49f56;
+    box-shadow: 0 0 0 4px rgba(196, 159, 86, 0.16);
 }
 
 .admin-login-card button {
     width: 100%;
-    background: var(--green);
-    color: white;
-    padding: 14px;
-    border-radius: 15px;
-    font-weight: 900;
-    font-size: 15px;
     margin-top: 8px;
+    background: linear-gradient(135deg, #3f2d19, #5a3d22);
+    color: white;
+    border: none;
+    padding: 15px;
+    border-radius: 18px;
+    font-weight: 900;
+    cursor: pointer;
+    transition: all 0.22s ease;
 }
 
-.admin-login-card button:disabled {
-    opacity: 0.7;
-    cursor: not-allowed;
+.admin-login-card button:hover {
+    background: linear-gradient(135deg, #c49f56, #d9ba74);
+    color: #2c1f10;
+    transform: translateY(-1px);
 }
 
-.admin-login-card .back-button {
-    background: #21170f;
+.admin-login-card small {
+    display: block;
+    margin-top: 18px;
+    color: #9e846a;
+    text-align: center;
+}
+
+@media (max-width: 900px) {
+    .admin-login-page {
+        background:
+            linear-gradient(rgba(249, 246, 242, 0.88), rgba(249, 246, 242, 0.92)),
+            url("https://images.unsplash.com/photo-1600607686527-6fb886090705?q=80&w=2000&auto=format&fit=crop");
+        background-size: cover;
+        background-position: center;
+    }
 }

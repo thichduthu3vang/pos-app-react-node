@@ -1,5 +1,10 @@
 import express from "express";
 import Order from "../models/Order.js";
+import {
+    verifyToken,
+    requireOwner,
+    requireBranchAccess
+} from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
@@ -21,7 +26,7 @@ const getBranchFilter = (branchCode) => {
     };
 };
 
-router.get("/dashboard", async (req, res) => {
+router.get("/dashboard", verifyToken, requireOwner, async (req, res) => {
     try {
         const { start, end } = getDateRange();
 
@@ -52,13 +57,13 @@ router.get("/dashboard", async (req, res) => {
         const branchMap = {};
 
         orders.forEach((order) => {
-            const branchCode = order.branchCode || "NO_BRANCH";
-            const branchName = order.branchName || "Chưa gán chi nhánh";
+            const code = order.branchCode || "NO_BRANCH";
+            const name = order.branchName || "Chưa gán chi nhánh";
 
-            if (!branchMap[branchCode]) {
-                branchMap[branchCode] = {
-                    branchCode,
-                    branchName,
+            if (!branchMap[code]) {
+                branchMap[code] = {
+                    branchCode: code,
+                    branchName: name,
                     totalRevenue: 0,
                     totalOrders: 0,
                     paidOrders: 0,
@@ -67,20 +72,20 @@ router.get("/dashboard", async (req, res) => {
                 };
             }
 
-            branchMap[branchCode].totalOrders += 1;
+            branchMap[code].totalOrders += 1;
 
             if (order.status === "cancelled") {
-                branchMap[branchCode].cancelledOrders += 1;
+                branchMap[code].cancelledOrders += 1;
                 return;
             }
 
             if (order.paymentStatus === "paid") {
-                branchMap[branchCode].paidOrders += 1;
-                branchMap[branchCode].totalRevenue += Number(order.totalAmount || 0);
+                branchMap[code].paidOrders += 1;
+                branchMap[code].totalRevenue += Number(order.totalAmount || 0);
             }
 
             if (order.paymentStatus === "unpaid") {
-                branchMap[branchCode].unpaidOrders += 1;
+                branchMap[code].unpaidOrders += 1;
             }
         });
 
@@ -112,9 +117,9 @@ router.get("/dashboard", async (req, res) => {
     }
 });
 
-router.get("/today", async (req, res) => {
+router.get("/today", verifyToken, requireBranchAccess, async (req, res) => {
     try {
-        const { branchCode } = req.query;
+        const branchCode = req.allowedBranchCode || req.query.branchCode;
 
         const { start, end } = getDateRange();
 
@@ -164,9 +169,10 @@ router.get("/today", async (req, res) => {
     }
 });
 
-router.get("/summary", async (req, res) => {
+router.get("/summary", verifyToken, requireBranchAccess, async (req, res) => {
     try {
-        const { startDate, endDate, branchCode } = req.query;
+        const { startDate, endDate } = req.query;
+        const branchCode = req.allowedBranchCode || req.query.branchCode;
 
         const { start, end } = getDateRange(startDate, endDate);
 
@@ -246,60 +252,65 @@ router.get("/summary", async (req, res) => {
     }
 });
 
-router.get("/branches/today", async (req, res) => {
-    try {
-        const { start, end } = getDateRange();
+router.get(
+    "/branches/today",
+    verifyToken,
+    requireOwner,
+    async (req, res) => {
+        try {
+            const { start, end } = getDateRange();
 
-        const orders = await Order.find({
-            createdAt: {
-                $gte: start,
-                $lte: end
-            },
-            paymentStatus: "paid",
-            status: { $ne: "cancelled" },
-            branchCode: { $ne: "" }
-        });
+            const orders = await Order.find({
+                createdAt: {
+                    $gte: start,
+                    $lte: end
+                },
+                paymentStatus: "paid",
+                status: { $ne: "cancelled" },
+                branchCode: { $ne: "" }
+            });
 
-        const branchMap = {};
+            const branchMap = {};
 
-        orders.forEach((order) => {
-            const code = order.branchCode || "UNKNOWN";
+            orders.forEach((order) => {
+                const code = order.branchCode || "UNKNOWN";
 
-            if (!branchMap[code]) {
-                branchMap[code] = {
-                    branchCode: code,
-                    branchName: order.branchName || code,
-                    totalRevenue: 0,
-                    totalPaidOrders: 0
-                };
-            }
+                if (!branchMap[code]) {
+                    branchMap[code] = {
+                        branchCode: code,
+                        branchName: order.branchName || code,
+                        totalRevenue: 0,
+                        totalPaidOrders: 0
+                    };
+                }
 
-            branchMap[code].totalRevenue += Number(order.totalAmount || 0);
-            branchMap[code].totalPaidOrders += 1;
-        });
+                branchMap[code].totalRevenue += Number(order.totalAmount || 0);
+                branchMap[code].totalPaidOrders += 1;
+            });
 
-        const branches = Object.values(branchMap).sort(
-            (a, b) => b.totalRevenue - a.totalRevenue
-        );
+            const branches = Object.values(branchMap).sort(
+                (a, b) => b.totalRevenue - a.totalRevenue
+            );
 
-        const totalRevenue = branches.reduce((sum, branch) => {
-            return sum + branch.totalRevenue;
-        }, 0);
+            const totalRevenue = branches.reduce((sum, branch) => {
+                return sum + branch.totalRevenue;
+            }, 0);
 
-        res.json({
-            success: true,
-            data: {
-                totalRevenue,
-                branches
-            }
-        });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: "Cannot get branch today report",
-            error: error.message
-        });
+            res.json({
+                success: true,
+                data: {
+                    totalRevenue,
+                    branches
+                }
+            });
+        } catch (error) {
+            res.status(500).json({
+                success: false,
+                message: "Cannot get branch today report",
+                error: error.message
+            });
+        }
     }
-});
+);
 
 export default router;

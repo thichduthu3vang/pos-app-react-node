@@ -2,12 +2,23 @@ import { useEffect, useMemo, useState } from "react";
 import api from "../api";
 
 function AdminOrders({ onOrdersChanged }) {
+    const adminRole = localStorage.getItem("adminRole");
+    const adminBranchCode = localStorage.getItem("adminBranchCode");
+    const adminBranchName = localStorage.getItem("adminBranchName");
+
+    const isStaff = adminRole === "staff";
+    const staffBranchCode = adminBranchCode ? adminBranchCode.toUpperCase() : "";
+
     const [branches, setBranches] = useState([]);
-    const [selectedBranchCode, setSelectedBranchCode] = useState("");
+    const [selectedBranchCode, setSelectedBranchCode] = useState(
+        isStaff ? staffBranchCode : ""
+    );
     const [orders, setOrders] = useState([]);
     const [statusFilter, setStatusFilter] = useState("all");
     const [paymentFilter, setPaymentFilter] = useState("all");
     const [loading, setLoading] = useState(true);
+
+    const currentBranchCode = isStaff ? staffBranchCode : selectedBranchCode;
 
     const loadBranches = async () => {
         try {
@@ -28,14 +39,21 @@ function AdminOrders({ onOrdersChanged }) {
         try {
             setLoading(true);
 
+            if (isStaff && !staffBranchCode) {
+                alert("Tài khoản nhân viên này chưa được gán chi nhánh");
+                setOrders([]);
+                return;
+            }
+
             const response = await api.get("/api/orders", {
-                params: selectedBranchCode ? { branchCode: selectedBranchCode } : {}
+                params: currentBranchCode ? { branchCode: currentBranchCode } : {}
             });
 
             setOrders(response.data.data || []);
         } catch (error) {
             console.error("Cannot load orders:", error);
-            alert("Không thể tải danh sách đơn hàng");
+            alert(error.response?.data?.message || "Không thể tải danh sách đơn hàng");
+            setOrders([]);
         } finally {
             setLoading(false);
         }
@@ -47,7 +65,7 @@ function AdminOrders({ onOrdersChanged }) {
 
     useEffect(() => {
         loadOrders();
-    }, [selectedBranchCode]);
+    }, [currentBranchCode]);
 
     const formatMoney = (amount) => {
         return Number(amount || 0).toLocaleString("vi-VN") + "đ";
@@ -149,8 +167,14 @@ function AdminOrders({ onOrdersChanged }) {
     };
 
     const selectedBranch = branches.find(
-        (branch) => branch.code === selectedBranchCode
+        (branch) => branch.code === currentBranchCode
     );
+
+    const branchTitle = isStaff
+        ? `${adminBranchName || selectedBranch?.name || "Chi nhánh"} - ${staffBranchCode}`
+        : selectedBranch
+            ? `${selectedBranch.name} - ${selectedBranch.code}`
+            : "Tất cả chi nhánh";
 
     return (
         <section style={{ minHeight: "100vh" }}>
@@ -186,19 +210,31 @@ function AdminOrders({ onOrdersChanged }) {
             >
                 <label style={labelStyle}>
                     Chi nhánh
-                    <select
-                        value={selectedBranchCode}
-                        onChange={(e) => setSelectedBranchCode(e.target.value)}
-                        style={inputStyle}
-                    >
-                        <option value="">Tất cả chi nhánh</option>
+                    {isStaff ? (
+                        <input
+                            value={branchTitle}
+                            disabled
+                            style={{
+                                ...inputStyle,
+                                opacity: 0.8,
+                                cursor: "not-allowed"
+                            }}
+                        />
+                    ) : (
+                        <select
+                            value={selectedBranchCode}
+                            onChange={(e) => setSelectedBranchCode(e.target.value)}
+                            style={inputStyle}
+                        >
+                            <option value="">Tất cả chi nhánh</option>
 
-                        {branches.map((branch) => (
-                            <option key={branch._id} value={branch.code}>
-                                {branch.name} - {branch.code}
-                            </option>
-                        ))}
-                    </select>
+                            {branches.map((branch) => (
+                                <option key={branch._id} value={branch.code}>
+                                    {branch.name} - {branch.code}
+                                </option>
+                            ))}
+                        </select>
+                    )}
                 </label>
 
                 <label style={labelStyle}>
@@ -254,9 +290,7 @@ function AdminOrders({ onOrdersChanged }) {
                 }}
             >
                 <h3 style={{ margin: "0 0 6px", fontSize: 22 }}>
-                    {selectedBranch
-                        ? `Đơn hàng của ${selectedBranch.name} - ${selectedBranch.code}`
-                        : "Đơn hàng tất cả chi nhánh"}
+                    Đơn hàng của {branchTitle}
                 </h3>
 
                 <p style={{ margin: 0, color: "var(--muted)" }}>
@@ -303,12 +337,7 @@ function AdminOrders({ onOrdersChanged }) {
             ) : filteredOrders.length === 0 ? (
                 <div style={emptyStyle}>Không có đơn hàng nào theo bộ lọc này.</div>
             ) : (
-                <div
-                    style={{
-                        display: "grid",
-                        gap: 14
-                    }}
-                >
+                <div style={{ display: "grid", gap: 14 }}>
                     {filteredOrders.map((order) => (
                         <article
                             key={order._id}

@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
 import api from "../api";
 
-const getTodayInputValue = () => {
-    const today = new Date();
-    return today.toISOString().slice(0, 10);
+const getToday = () => {
+    return new Date().toISOString().slice(0, 10);
 };
 
 const emptyReport = {
@@ -18,17 +17,31 @@ const emptyReport = {
 };
 
 function AdminReports() {
+    const adminRole = localStorage.getItem("adminRole");
+    const adminBranchCode = localStorage.getItem("adminBranchCode");
+    const adminBranchName = localStorage.getItem("adminBranchName");
+
+    const isOwner = adminRole === "owner";
+    const isStaff = adminRole === "staff";
+
+    const staffBranchCode = adminBranchCode ? adminBranchCode.toUpperCase() : "";
+
     const [branches, setBranches] = useState([]);
-    const [selectedBranchCode, setSelectedBranchCode] = useState("");
-    const [startDate, setStartDate] = useState(getTodayInputValue());
-    const [endDate, setEndDate] = useState(getTodayInputValue());
-    const [report, setReport] = useState(emptyReport);
     const [branchTodayReport, setBranchTodayReport] = useState({
         totalRevenue: 0,
         branches: []
     });
+
+    const [selectedBranchCode, setSelectedBranchCode] = useState(
+        isStaff ? staffBranchCode : ""
+    );
+
+    const [startDate, setStartDate] = useState(getToday());
+    const [endDate, setEndDate] = useState(getToday());
+    const [report, setReport] = useState(emptyReport);
     const [loading, setLoading] = useState(true);
-    const [errorMessage, setErrorMessage] = useState("");
+
+    const currentBranchCode = isStaff ? staffBranchCode : selectedBranchCode;
 
     const formatMoney = (amount) => {
         return Number(amount || 0).toLocaleString("vi-VN") + "đ";
@@ -72,37 +85,15 @@ function AdminReports() {
         }
     };
 
-    const loadReport = async () => {
-        try {
-            setLoading(true);
-            setErrorMessage("");
-
-            const params = {
-                startDate,
-                endDate
-            };
-
-            if (selectedBranchCode) {
-                params.branchCode = selectedBranchCode;
-            }
-
-            const response = await api.get("/api/reports/summary", {
-                params
-            });
-
-            setReport(response.data.data || emptyReport);
-        } catch (error) {
-            console.error("Cannot load report:", error);
-            setReport(emptyReport);
-            setErrorMessage(
-                error.response?.data?.message || "Không thể tải báo cáo doanh thu"
-            );
-        } finally {
-            setLoading(false);
-        }
-    };
-
     const loadBranchTodayReport = async () => {
+        if (!isOwner) {
+            setBranchTodayReport({
+                totalRevenue: 0,
+                branches: []
+            });
+            return;
+        }
+
         try {
             const response = await api.get("/api/reports/branches/today");
 
@@ -121,23 +112,60 @@ function AdminReports() {
         }
     };
 
-    const reloadAllReports = () => {
-        loadReport();
-        loadBranchTodayReport();
+    const loadReport = async () => {
+        try {
+            setLoading(true);
+
+            if (isStaff && !staffBranchCode) {
+                alert("Tài khoản nhân viên này chưa được gán chi nhánh");
+                setReport(emptyReport);
+                return;
+            }
+
+            const response = await api.get("/api/reports/summary", {
+                params: {
+                    startDate,
+                    endDate,
+                    ...(currentBranchCode ? { branchCode: currentBranchCode } : {})
+                }
+            });
+
+            setReport(response.data.data || emptyReport);
+        } catch (error) {
+            console.error("Cannot load report:", error);
+            alert(error.response?.data?.message || "Không thể tải báo cáo doanh thu");
+            setReport(emptyReport);
+        } finally {
+            setLoading(false);
+        }
     };
 
     useEffect(() => {
         loadBranches();
+        loadBranchTodayReport();
     }, []);
 
     useEffect(() => {
-        reloadAllReports();
-    }, [startDate, endDate, selectedBranchCode]);
+        loadReport();
+    }, [currentBranchCode, startDate, endDate]);
 
-    const revenueByDay = report.revenueByDay || [];
-    const orders = report.orders || [];
-    const maxRevenue = Math.max(
-        ...revenueByDay.map((item) => Number(item.revenue || 0)),
+    const selectedBranch = branches.find(
+        (branch) => branch.code === currentBranchCode
+    );
+
+    const branchLabel = isStaff
+        ? `${adminBranchName || selectedBranch?.name || "Chi nhánh"} - ${staffBranchCode}`
+        : selectedBranch
+            ? `${selectedBranch.name} - ${selectedBranch.code}`
+            : "Tất cả chi nhánh";
+
+    const maxRevenueByDay = Math.max(
+        ...report.revenueByDay.map((item) => Number(item.revenue || 0)),
+        1
+    );
+
+    const maxBranchRevenue = Math.max(
+        ...branchTodayReport.branches.map((item) => Number(item.totalRevenue || 0)),
         1
     );
 
@@ -153,7 +181,10 @@ function AdminReports() {
                     boxShadow: "0 14px 35px rgba(80, 52, 27, 0.08)"
                 }}
             >
-                <h2 style={{ margin: 0, fontSize: 32 }}>Admin - Báo cáo doanh thu</h2>
+                <h2 style={{ margin: 0, fontSize: 32 }}>
+                    Admin - Báo cáo doanh thu
+                </h2>
+
                 <p style={{ margin: "8px 0 0", color: "var(--muted)" }}>
                     Xem doanh thu tổng hoặc lọc theo từng chi nhánh.
                 </p>
@@ -167,66 +198,66 @@ function AdminReports() {
                     padding: 20,
                     marginBottom: 24,
                     display: "grid",
-                    gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-                    gap: 14
+                    gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))",
+                    gap: 14,
+                    alignItems: "end"
                 }}
             >
-                <label style={{ display: "grid", gap: 7, fontWeight: 800 }}>
+                <label style={labelStyle}>
                     Từ ngày
                     <input
                         type="date"
                         value={startDate}
                         onChange={(e) => setStartDate(e.target.value)}
-                        style={{
-                            border: "1px solid var(--border)",
-                            background: "var(--soft)",
-                            padding: 12,
-                            borderRadius: 14
-                        }}
+                        style={inputStyle}
                     />
                 </label>
 
-                <label style={{ display: "grid", gap: 7, fontWeight: 800 }}>
+                <label style={labelStyle}>
                     Đến ngày
                     <input
                         type="date"
                         value={endDate}
                         onChange={(e) => setEndDate(e.target.value)}
-                        style={{
-                            border: "1px solid var(--border)",
-                            background: "var(--soft)",
-                            padding: 12,
-                            borderRadius: 14
-                        }}
+                        style={inputStyle}
                     />
                 </label>
 
-                <label style={{ display: "grid", gap: 7, fontWeight: 800 }}>
+                <label style={labelStyle}>
                     Chi nhánh
-                    <select
-                        value={selectedBranchCode}
-                        onChange={(e) => setSelectedBranchCode(e.target.value)}
-                        style={{
-                            border: "1px solid var(--border)",
-                            background: "var(--soft)",
-                            padding: 12,
-                            borderRadius: 14
-                        }}
-                    >
-                        <option value="">Tất cả chi nhánh</option>
+                    {isStaff ? (
+                        <input
+                            value={branchLabel}
+                            disabled
+                            style={{
+                                ...inputStyle,
+                                opacity: 0.8,
+                                cursor: "not-allowed"
+                            }}
+                        />
+                    ) : (
+                        <select
+                            value={selectedBranchCode}
+                            onChange={(e) => setSelectedBranchCode(e.target.value)}
+                            style={inputStyle}
+                        >
+                            <option value="">Tất cả chi nhánh</option>
 
-                        {branches.map((branch) => (
-                            <option key={branch._id} value={branch.code}>
-                                {branch.name} - {branch.code}
-                            </option>
-                        ))}
-                    </select>
+                            {branches.map((branch) => (
+                                <option key={branch._id} value={branch.code}>
+                                    {branch.name} - {branch.code}
+                                </option>
+                            ))}
+                        </select>
+                    )}
                 </label>
 
                 <button
-                    onClick={reloadAllReports}
+                    onClick={() => {
+                        loadReport();
+                        loadBranchTodayReport();
+                    }}
                     style={{
-                        alignSelf: "end",
                         background: "var(--primary)",
                         color: "white",
                         padding: 13,
@@ -238,267 +269,288 @@ function AdminReports() {
                 </button>
             </div>
 
-            {errorMessage && (
-                <div
-                    style={{
-                        background: "#ffe6e3",
-                        color: "var(--red)",
-                        borderRadius: 18,
-                        padding: 16,
-                        marginBottom: 20,
-                        fontWeight: 900
-                    }}
-                >
-                    {errorMessage}
+            <div
+                style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                    gap: 16,
+                    marginBottom: 24
+                }}
+            >
+                <div className="sidebar-box" style={{ margin: 0 }}>
+                    <span className="label">Doanh thu</span>
+                    <strong>{formatMoney(report.totalRevenue)}</strong>
                 </div>
-            )}
 
-            {loading ? (
+                <div className="sidebar-box" style={{ margin: 0 }}>
+                    <span className="label">Tổng đơn</span>
+                    <strong>{report.totalOrders || 0}</strong>
+                </div>
+
+                <div className="sidebar-box" style={{ margin: 0 }}>
+                    <span className="label">Đã thanh toán</span>
+                    <strong>{report.totalPaidOrders || 0}</strong>
+                </div>
+
+                <div className="sidebar-box" style={{ margin: 0 }}>
+                    <span className="label">Chưa thanh toán</span>
+                    <strong>{report.totalUnpaidOrders || 0}</strong>
+                </div>
+
+                <div className="sidebar-box" style={{ margin: 0 }}>
+                    <span className="label">Đơn đã hủy</span>
+                    <strong>{report.totalCancelledOrders || 0}</strong>
+                </div>
+
+                <div className="sidebar-box" style={{ margin: 0 }}>
+                    <span className="label">Trung bình / đơn</span>
+                    <strong>{formatMoney(report.averageOrderValue)}</strong>
+                </div>
+            </div>
+
+            <div
+                style={{
+                    background: "white",
+                    border: "1px solid var(--border)",
+                    borderRadius: 24,
+                    padding: 20,
+                    marginBottom: 24,
+                    boxShadow: "0 14px 35px rgba(80, 52, 27, 0.08)"
+                }}
+            >
+                <h3 style={{ margin: "0 0 16px", fontSize: 22 }}>
+                    Biểu đồ doanh thu theo ngày - {branchLabel}
+                </h3>
+
+                {loading ? (
+                    <div style={emptyStyle}>Đang tải báo cáo...</div>
+                ) : report.revenueByDay.length === 0 ? (
+                    <div style={emptyStyle}>Không có doanh thu trong khoảng ngày này.</div>
+                ) : (
+                    <div style={{ display: "grid", gap: 14 }}>
+                        {report.revenueByDay.map((item) => (
+                            <div key={item.date}>
+                                <div
+                                    style={{
+                                        display: "flex",
+                                        justifyContent: "space-between",
+                                        gap: 12,
+                                        marginBottom: 7,
+                                        fontWeight: 900
+                                    }}
+                                >
+                                    <span>{item.date}</span>
+                                    <span>
+                                        {formatMoney(item.revenue)} · {item.orders} đơn
+                                    </span>
+                                </div>
+
+                                <div
+                                    style={{
+                                        height: 16,
+                                        background: "var(--soft)",
+                                        border: "1px solid var(--border)",
+                                        borderRadius: 999,
+                                        overflow: "hidden"
+                                    }}
+                                >
+                                    <div
+                                        style={{
+                                            height: "100%",
+                                            width: `${Math.max(
+                                                (Number(item.revenue || 0) / maxRevenueByDay) * 100,
+                                                4
+                                            )}%`,
+                                            background: "var(--green)",
+                                            borderRadius: 999
+                                        }}
+                                    />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+
+            {isOwner && (
                 <div
                     style={{
                         background: "white",
-                        border: "1px dashed var(--border)",
+                        border: "1px solid var(--border)",
                         borderRadius: 24,
-                        padding: 40,
-                        textAlign: "center",
-                        color: "var(--muted)",
-                        fontWeight: 900
+                        padding: 20,
+                        marginBottom: 24,
+                        boxShadow: "0 14px 35px rgba(80, 52, 27, 0.08)"
                     }}
                 >
-                    Đang tải báo cáo...
-                </div>
-            ) : (
-                <>
-                    <div
-                        style={{
-                            display: "grid",
-                            gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-                            gap: 16,
-                            marginBottom: 24
-                        }}
-                    >
-                        <div className="sidebar-box" style={{ margin: 0 }}>
-                            <span className="label">Doanh thu</span>
-                            <strong>{formatMoney(report.totalRevenue)}</strong>
-                        </div>
+                    <h3 style={{ margin: "0 0 16px", fontSize: 22 }}>
+                        So sánh doanh thu chi nhánh hôm nay
+                    </h3>
 
-                        <div className="sidebar-box" style={{ margin: 0 }}>
-                            <span className="label">Tổng đơn</span>
-                            <strong>{report.totalOrders || 0}</strong>
-                        </div>
+                    {branchTodayReport.branches.length === 0 ? (
+                        <div style={emptyStyle}>Hôm nay chưa có doanh thu chi nhánh.</div>
+                    ) : (
+                        <div style={{ display: "grid", gap: 14 }}>
+                            {branchTodayReport.branches.map((branch) => (
+                                <div key={branch.branchCode}>
+                                    <div
+                                        style={{
+                                            display: "flex",
+                                            justifyContent: "space-between",
+                                            gap: 12,
+                                            marginBottom: 7,
+                                            fontWeight: 900
+                                        }}
+                                    >
+                                        <span>
+                                            {branch.branchName} - {branch.branchCode}
+                                        </span>
+                                        <span>
+                                            {formatMoney(branch.totalRevenue)} ·{" "}
+                                            {branch.totalPaidOrders} đơn
+                                        </span>
+                                    </div>
 
-                        <div className="sidebar-box" style={{ margin: 0 }}>
-                            <span className="label">Đã thanh toán</span>
-                            <strong>{report.totalPaidOrders || 0}</strong>
-                        </div>
-
-                        <div className="sidebar-box" style={{ margin: 0 }}>
-                            <span className="label">Chưa thanh toán</span>
-                            <strong>{report.totalUnpaidOrders || 0}</strong>
-                        </div>
-
-                        <div className="sidebar-box" style={{ margin: 0 }}>
-                            <span className="label">Đơn đã hủy</span>
-                            <strong>{report.totalCancelledOrders || 0}</strong>
-                        </div>
-
-                        <div className="sidebar-box" style={{ margin: 0 }}>
-                            <span className="label">Trung bình / đơn</span>
-                            <strong>{formatMoney(report.averageOrderValue)}</strong>
-                        </div>
-                    </div>
-
-                    {!selectedBranchCode && (
-                        <div
-                            style={{
-                                background: "white",
-                                border: "1px solid var(--border)",
-                                borderRadius: 24,
-                                padding: 20,
-                                marginBottom: 24
-                            }}
-                        >
-                            <h3 style={{ marginTop: 0 }}>Doanh thu hôm nay theo chi nhánh</h3>
-
-                            {branchTodayReport.branches.length === 0 ? (
-                                <p style={{ color: "var(--muted)" }}>
-                                    Hôm nay chưa có doanh thu theo chi nhánh.
-                                </p>
-                            ) : (
-                                <div style={{ display: "grid", gap: 12 }}>
-                                    {branchTodayReport.branches.map((branch) => (
+                                    <div
+                                        style={{
+                                            height: 16,
+                                            background: "var(--soft)",
+                                            border: "1px solid var(--border)",
+                                            borderRadius: 999,
+                                            overflow: "hidden"
+                                        }}
+                                    >
                                         <div
-                                            key={branch.branchCode}
                                             style={{
-                                                border: "1px solid var(--border)",
-                                                borderRadius: 16,
-                                                padding: 14,
-                                                display: "grid",
-                                                gridTemplateColumns: "1fr auto",
-                                                gap: 12,
-                                                alignItems: "center"
+                                                height: "100%",
+                                                width: `${Math.max(
+                                                    (Number(branch.totalRevenue || 0) /
+                                                        maxBranchRevenue) *
+                                                    100,
+                                                    4
+                                                )}%`,
+                                                background: "var(--primary)",
+                                                borderRadius: 999
                                             }}
-                                        >
-                                            <div>
-                                                <strong>{branch.branchName}</strong>
-                                                <p style={{ margin: "5px 0 0", color: "var(--muted)" }}>
-                                                    {branch.branchCode} · {branch.totalPaidOrders} đơn
-                                                </p>
-                                            </div>
-
-                                            <strong>{formatMoney(branch.totalRevenue)}</strong>
-                                        </div>
-                                    ))}
+                                        />
+                                    </div>
                                 </div>
-                            )}
+                            ))}
                         </div>
                     )}
-
-                    <div
-                        style={{
-                            background: "white",
-                            border: "1px solid var(--border)",
-                            borderRadius: 24,
-                            padding: 20,
-                            marginBottom: 24
-                        }}
-                    >
-                        <h3 style={{ marginTop: 0 }}>Biểu đồ doanh thu theo ngày</h3>
-
-                        {revenueByDay.length === 0 ? (
-                            <p style={{ color: "var(--muted)" }}>
-                                Chưa có dữ liệu doanh thu trong khoảng thời gian này.
-                            </p>
-                        ) : (
-                            <div style={{ display: "grid", gap: 12 }}>
-                                {revenueByDay.map((item) => (
-                                    <div key={item.date}>
-                                        <div
-                                            style={{
-                                                display: "flex",
-                                                justifyContent: "space-between",
-                                                gap: 12,
-                                                marginBottom: 6
-                                            }}
-                                        >
-                                            <strong>{item.date}</strong>
-                                            <span>
-                                                {formatMoney(item.revenue)} · {item.orders} đơn
-                                            </span>
-                                        </div>
-
-                                        <div
-                                            style={{
-                                                height: 14,
-                                                background: "var(--soft)",
-                                                borderRadius: 999,
-                                                overflow: "hidden"
-                                            }}
-                                        >
-                                            <div
-                                                style={{
-                                                    width: `${Math.max(
-                                                        (Number(item.revenue || 0) / maxRevenue) * 100,
-                                                        3
-                                                    )}%`,
-                                                    height: "100%",
-                                                    background: "var(--green)",
-                                                    borderRadius: 999
-                                                }}
-                                            />
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-
-                    <div
-                        style={{
-                            background: "white",
-                            border: "1px solid var(--border)",
-                            borderRadius: 24,
-                            padding: 20
-                        }}
-                    >
-                        <h3 style={{ marginTop: 0 }}>Danh sách đơn trong báo cáo</h3>
-
-                        {orders.length === 0 ? (
-                            <p style={{ color: "var(--muted)" }}>
-                                Không có đơn nào trong khoảng thời gian này.
-                            </p>
-                        ) : (
-                            <div style={{ overflowX: "auto" }}>
-                                <table
-                                    style={{
-                                        width: "100%",
-                                        borderCollapse: "collapse",
-                                        minWidth: 900
-                                    }}
-                                >
-                                    <thead>
-                                        <tr>
-                                            <th style={thStyle}>Thời gian</th>
-                                            <th style={thStyle}>Chi nhánh</th>
-                                            <th style={thStyle}>Bàn</th>
-                                            <th style={thStyle}>Khách</th>
-                                            <th style={thStyle}>Tổng tiền</th>
-                                            <th style={thStyle}>Thanh toán</th>
-                                            <th style={thStyle}>Trạng thái</th>
-                                        </tr>
-                                    </thead>
-
-                                    <tbody>
-                                        {orders.map((order) => (
-                                            <tr key={order._id}>
-                                                <td style={tdStyle}>
-                                                    {order.createdAt
-                                                        ? new Date(order.createdAt).toLocaleString("vi-VN")
-                                                        : "Không rõ"}
-                                                </td>
-
-                                                <td style={tdStyle}>
-                                                    {order.branchName || order.branchCode || "Chưa gán"}
-                                                </td>
-
-                                                <td style={tdStyle}>{order.tableName || "Takeaway"}</td>
-
-                                                <td style={tdStyle}>
-                                                    {order.customerName || "Không có"}
-                                                </td>
-
-                                                <td style={tdStyle}>{formatMoney(order.totalAmount)}</td>
-
-                                                <td style={tdStyle}>
-                                                    {getPaymentStatusText(order.paymentStatus)}
-                                                    <br />
-                                                    <small>{getPaymentMethodText(order.paymentMethod)}</small>
-                                                </td>
-
-                                                <td style={tdStyle}>{getOrderStatusText(order.status)}</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        )}
-                    </div>
-                </>
+                </div>
             )}
+
+            <div
+                style={{
+                    background: "white",
+                    border: "1px solid var(--border)",
+                    borderRadius: 24,
+                    padding: 20,
+                    marginBottom: 24,
+                    boxShadow: "0 14px 35px rgba(80, 52, 27, 0.08)",
+                    overflowX: "auto"
+                }}
+            >
+                <h3 style={{ margin: "0 0 16px", fontSize: 22 }}>
+                    Danh sách đơn trong báo cáo - {branchLabel}
+                </h3>
+
+                {loading ? (
+                    <div style={emptyStyle}>Đang tải danh sách đơn...</div>
+                ) : report.orders.length === 0 ? (
+                    <div style={emptyStyle}>Không có đơn nào trong báo cáo.</div>
+                ) : (
+                    <table
+                        style={{
+                            width: "100%",
+                            borderCollapse: "collapse",
+                            minWidth: 900
+                        }}
+                    >
+                        <thead>
+                            <tr>
+                                <th style={thStyle}>Thời gian</th>
+                                <th style={thStyle}>Chi nhánh</th>
+                                <th style={thStyle}>Bàn</th>
+                                <th style={thStyle}>Khách</th>
+                                <th style={thStyle}>Tổng tiền</th>
+                                <th style={thStyle}>Thanh toán</th>
+                                <th style={thStyle}>Trạng thái</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            {report.orders.map((order) => (
+                                <tr key={order._id}>
+                                    <td style={tdStyle}>
+                                        {order.createdAt
+                                            ? new Date(order.createdAt).toLocaleString("vi-VN")
+                                            : "Không rõ"}
+                                    </td>
+
+                                    <td style={tdStyle}>
+                                        {order.branchName || order.branchCode || "Chưa gán"}
+                                    </td>
+
+                                    <td style={tdStyle}>{order.tableName || "Takeaway"}</td>
+
+                                    <td style={tdStyle}>{order.customerName || "Không có"}</td>
+
+                                    <td style={tdStyle}>
+                                        <strong>{formatMoney(order.totalAmount)}</strong>
+                                    </td>
+
+                                    <td style={tdStyle}>
+                                        {getPaymentStatusText(order.paymentStatus)}
+                                        <br />
+                                        <small>{getPaymentMethodText(order.paymentMethod)}</small>
+                                    </td>
+
+                                    <td style={tdStyle}>{getOrderStatusText(order.status)}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                )}
+            </div>
         </section>
     );
 }
 
+const labelStyle = {
+    display: "grid",
+    gap: 7,
+    fontWeight: 800
+};
+
+const inputStyle = {
+    border: "1px solid var(--border)",
+    background: "var(--soft)",
+    padding: 12,
+    borderRadius: 14,
+    fontWeight: 800
+};
+
+const emptyStyle = {
+    border: "1px dashed var(--border)",
+    borderRadius: 18,
+    padding: 30,
+    textAlign: "center",
+    color: "var(--muted)",
+    fontWeight: 900
+};
+
 const thStyle = {
     textAlign: "left",
-    padding: "12px",
+    padding: "12px 10px",
     borderBottom: "1px solid var(--border)",
     color: "var(--muted)",
     fontSize: 13
 };
 
 const tdStyle = {
-    padding: "12px",
+    padding: "12px 10px",
     borderBottom: "1px solid var(--border)",
     verticalAlign: "top"
 };
