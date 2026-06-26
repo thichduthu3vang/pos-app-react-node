@@ -1,29 +1,16 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import api from "../api";
 import "./AdminLogin.css";
 
 function AdminLogin() {
-    const navigate = useNavigate();
-
-    const [form, setForm] = useState({
-        email: "admin@pos.com",
-        password: "123456"
-    });
-
+    const [email, setEmail] = useState("admin@pos.com");
+    const [password, setPassword] = useState("123456");
     const [loading, setLoading] = useState(false);
 
-    const handleChange = (field, value) => {
-        setForm({
-            ...form,
-            [field]: value
-        });
-    };
-
-    const handleSubmit = async (e) => {
+    const login = async (e) => {
         e.preventDefault();
 
-        if (!form.email || !form.password) {
+        if (!email || !password) {
             alert("Vui lòng nhập email và mật khẩu");
             return;
         }
@@ -32,22 +19,25 @@ function AdminLogin() {
             setLoading(true);
 
             const response = await api.post("/api/auth/login", {
-                email: form.email,
-                password: form.password
+                email,
+                password
             });
 
-            const token = response.data?.data?.token;
+            const data = response.data.data;
+            const admin = data.admin;
 
-            if (!token) {
-                alert("Đăng nhập thành công nhưng không nhận được token");
-                return;
+            localStorage.setItem("adminToken", data.token);
+            localStorage.setItem("adminEmail", admin.email || "");
+            localStorage.setItem("adminName", admin.name || "");
+            localStorage.setItem("adminRole", admin.role || "staff");
+            localStorage.setItem("adminBranchCode", admin.branchCode || "");
+            localStorage.setItem("adminBranchName", admin.branchName || "");
+
+            if (admin.role === "staff" && admin.branchCode) {
+                window.location.href = `/pos/${admin.branchCode}`;
+            } else {
+                window.location.href = "/admin/dashboard";
             }
-
-            localStorage.setItem("adminToken", token);
-            localStorage.setItem("adminEmail", form.email);
-
-            // Chuyển thẳng vào trang Admin menu
-            window.location.href = "/admin/menu";
         } catch (error) {
             console.error("Cannot login:", error);
             alert(error.response?.data?.message || "Đăng nhập thất bại");
@@ -58,17 +48,17 @@ function AdminLogin() {
 
     return (
         <div className="admin-login-page">
-            <form className="admin-login-card" onSubmit={handleSubmit}>
-                <div className="admin-login-icon">⚙️</div>
+            <form className="admin-login-card" onSubmit={login}>
+                <div className="admin-login-logo">☕</div>
 
                 <h1>POS Admin</h1>
-                <p>Đăng nhập để quản lý menu, bàn, đơn hàng và báo cáo.</p>
+                <p>Đăng nhập để quản lý hệ thống</p>
 
                 <label>
                     Email
                     <input
-                        value={form.email}
-                        onChange={(e) => handleChange("email", e.target.value)}
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
                         placeholder="admin@pos.com"
                     />
                 </label>
@@ -77,23 +67,19 @@ function AdminLogin() {
                     Mật khẩu
                     <input
                         type="password"
-                        value={form.password}
-                        onChange={(e) => handleChange("password", e.target.value)}
-                        placeholder="Nhập mật khẩu"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="123456"
                     />
                 </label>
 
                 <button type="submit" disabled={loading}>
-                    {loading ? "Đang đăng nhập..." : "Đăng nhập Admin"}
+                    {loading ? "Đang đăng nhập..." : "Đăng nhập"}
                 </button>
 
-                <button
-                    type="button"
-                    className="back-button"
-                    onClick={() => navigate("/")}
-                >
-                    Quay lại POS
-                </button>
+                <small>
+                    Owner mặc định: admin@pos.com / 123456
+                </small>
             </form>
         </div>
     );

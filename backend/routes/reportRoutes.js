@@ -21,6 +21,97 @@ const getBranchFilter = (branchCode) => {
     };
 };
 
+router.get("/dashboard", async (req, res) => {
+    try {
+        const { start, end } = getDateRange();
+
+        const orders = await Order.find({
+            createdAt: {
+                $gte: start,
+                $lte: end
+            }
+        }).sort({ createdAt: -1 });
+
+        const paidOrders = orders.filter(
+            (order) => order.paymentStatus === "paid" && order.status !== "cancelled"
+        );
+
+        const unpaidOrders = orders.filter(
+            (order) =>
+                order.paymentStatus === "unpaid" && order.status !== "cancelled"
+        );
+
+        const cancelledOrders = orders.filter(
+            (order) => order.status === "cancelled"
+        );
+
+        const totalRevenue = paidOrders.reduce((sum, order) => {
+            return sum + Number(order.totalAmount || 0);
+        }, 0);
+
+        const branchMap = {};
+
+        orders.forEach((order) => {
+            const branchCode = order.branchCode || "NO_BRANCH";
+            const branchName = order.branchName || "Chưa gán chi nhánh";
+
+            if (!branchMap[branchCode]) {
+                branchMap[branchCode] = {
+                    branchCode,
+                    branchName,
+                    totalRevenue: 0,
+                    totalOrders: 0,
+                    paidOrders: 0,
+                    unpaidOrders: 0,
+                    cancelledOrders: 0
+                };
+            }
+
+            branchMap[branchCode].totalOrders += 1;
+
+            if (order.status === "cancelled") {
+                branchMap[branchCode].cancelledOrders += 1;
+                return;
+            }
+
+            if (order.paymentStatus === "paid") {
+                branchMap[branchCode].paidOrders += 1;
+                branchMap[branchCode].totalRevenue += Number(order.totalAmount || 0);
+            }
+
+            if (order.paymentStatus === "unpaid") {
+                branchMap[branchCode].unpaidOrders += 1;
+            }
+        });
+
+        const branches = Object.values(branchMap).sort(
+            (a, b) => b.totalRevenue - a.totalRevenue
+        );
+
+        const bestBranch = branches.length > 0 ? branches[0] : null;
+
+        res.json({
+            success: true,
+            data: {
+                totalRevenue,
+                totalOrders: orders.length,
+                totalPaidOrders: paidOrders.length,
+                totalUnpaidOrders: unpaidOrders.length,
+                totalCancelledOrders: cancelledOrders.length,
+                bestBranch,
+                branches,
+                recentOrders: orders.slice(0, 8)
+            }
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: "Cannot get dashboard report",
+            error: error.message
+        });
+    }
+});
+
 router.get("/today", async (req, res) => {
     try {
         const { branchCode } = req.query;

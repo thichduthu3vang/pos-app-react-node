@@ -1,5 +1,7 @@
 import { NavLink, Navigate, Route, Routes } from "react-router-dom";
+import AdminDashboard from "./AdminDashboard";
 import AdminBranches from "./AdminBranches";
+import AdminUsers from "./AdminUsers";
 import AdminMenu from "./AdminMenu";
 import AdminTables from "./AdminTables";
 import AdminOrders from "./AdminOrders";
@@ -8,10 +10,20 @@ import "./AdminLayout.css";
 
 function AdminLayout() {
     const adminEmail = localStorage.getItem("adminEmail");
+    const adminRole = localStorage.getItem("adminRole");
+    const adminBranchName = localStorage.getItem("adminBranchName");
+    const adminBranchCode = localStorage.getItem("adminBranchCode");
+
+    const isOwner = adminRole === "owner";
+    const isStaff = adminRole === "staff";
 
     const logout = () => {
         localStorage.removeItem("adminToken");
         localStorage.removeItem("adminEmail");
+        localStorage.removeItem("adminName");
+        localStorage.removeItem("adminRole");
+        localStorage.removeItem("adminBranchCode");
+        localStorage.removeItem("adminBranchName");
         window.location.href = "/admin-login";
     };
 
@@ -31,13 +43,37 @@ function AdminLayout() {
                     <strong>{adminEmail || "Admin"}</strong>
                 </div>
 
+                <div className="sidebar-box">
+                    <span className="label">Vai trò</span>
+                    <strong>{isOwner ? "Owner" : "Staff"}</strong>
+                </div>
+
+                {isStaff && (
+                    <div className="sidebar-box">
+                        <span className="label">Chi nhánh</span>
+                        <strong>{adminBranchName || adminBranchCode}</strong>
+                    </div>
+                )}
+
                 <div className="admin-nav">
-                    <NavLink to="/admin/chi-nhanh">Admin chi nhánh</NavLink>
+                    {isOwner && (
+                        <>
+                            <NavLink to="/admin/dashboard">Dashboard tổng</NavLink>
+                            <NavLink to="/admin/chi-nhanh">Admin chi nhánh</NavLink>
+                            <NavLink to="/admin/users">Admin tài khoản</NavLink>
+                        </>
+                    )}
+
                     <NavLink to="/admin/menu">Admin menu</NavLink>
                     <NavLink to="/admin/tables">Admin bàn</NavLink>
                     <NavLink to="/admin/orders">Admin đơn hàng</NavLink>
                     <NavLink to="/admin/reports">Admin báo cáo</NavLink>
-                    <NavLink to="/">← Quay lại POS</NavLink>
+
+                    <NavLink
+                        to={isStaff && adminBranchCode ? `/pos/${adminBranchCode}` : "/"}
+                    >
+                        ← Quay lại POS
+                    </NavLink>
 
                     <button className="admin-logout-button" onClick={logout}>
                         Đăng xuất
@@ -47,12 +83,28 @@ function AdminLayout() {
 
             <main className="main">
                 <Routes>
-                    <Route index element={<Navigate to="/admin/chi-nhanh" replace />} />
+                    <Route
+                        index
+                        element={
+                            isOwner ? (
+                                <Navigate to="/admin/dashboard" replace />
+                            ) : (
+                                <Navigate to="/admin/orders" replace />
+                            )
+                        }
+                    />
 
-                    <Route path="chi-nhanh" element={<AdminBranches />} />
-
-                    {/* Route cũ, giữ để ai lỡ vào /admin/branches vẫn không lỗi */}
-                    <Route path="branches" element={<Navigate to="/admin/chi-nhanh" replace />} />
+                    {isOwner && (
+                        <>
+                            <Route path="dashboard" element={<AdminDashboard />} />
+                            <Route path="chi-nhanh" element={<AdminBranches />} />
+                            <Route
+                                path="branches"
+                                element={<Navigate to="/admin/chi-nhanh" replace />}
+                            />
+                            <Route path="users" element={<AdminUsers />} />
+                        </>
+                    )}
 
                     <Route path="menu" element={<AdminMenu />} />
 
@@ -61,6 +113,17 @@ function AdminLayout() {
                     <Route path="orders" element={<AdminOrders />} />
 
                     <Route path="reports" element={<AdminReports />} />
+
+                    <Route
+                        path="*"
+                        element={
+                            isOwner ? (
+                                <Navigate to="/admin/dashboard" replace />
+                            ) : (
+                                <Navigate to="/admin/orders" replace />
+                            )
+                        }
+                    />
                 </Routes>
             </main>
         </div>

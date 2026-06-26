@@ -4,8 +4,11 @@ import api from "../api";
 import "./CustomerOrderPage.css";
 
 function CustomerOrderPage() {
-    const { tableId } = useParams();
+    const { branchCode, tableId } = useParams();
 
+    const normalizedBranchCode = branchCode ? branchCode.toUpperCase() : "";
+
+    const [branch, setBranch] = useState(null);
     const [table, setTable] = useState(null);
     const [menuItems, setMenuItems] = useState([]);
     const [cart, setCart] = useState([]);
@@ -13,21 +16,68 @@ function CustomerOrderPage() {
     const [selectedCategory, setSelectedCategory] = useState("Tất cả");
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
+    const [pageError, setPageError] = useState("");
 
     const loadData = async () => {
         try {
             setLoading(true);
+            setPageError("");
+
+            if (!normalizedBranchCode || !tableId) {
+                setPageError("QR không hợp lệ. Vui lòng gọi nhân viên.");
+                return;
+            }
+
+            const branchesResponse = await api.get("/api/branches");
+            const branches = branchesResponse.data.data || [];
+
+            const foundBranch = branches.find(
+                (item) =>
+                    item.code === normalizedBranchCode && item.isActive === true
+            );
+
+            if (!foundBranch) {
+                setPageError(
+                    `Chi nhánh ${normalizedBranchCode} không tồn tại hoặc đang tạm tắt. Vui lòng gọi nhân viên.`
+                );
+                return;
+            }
 
             const [tableResponse, menuResponse] = await Promise.all([
                 api.get(`/api/tables/${tableId}`),
                 api.get("/api/menu")
             ]);
 
-            setTable(tableResponse.data.data);
+            const foundTable = tableResponse.data.data;
+
+            if (!foundTable) {
+                setPageError("Không tìm thấy bàn. Vui lòng gọi nhân viên.");
+                return;
+            }
+
+            if (foundTable.branchCode !== normalizedBranchCode) {
+                setPageError(
+                    "QR này không thuộc đúng chi nhánh. Vui lòng gọi nhân viên."
+                );
+                return;
+            }
+
+            if (
+                foundTable.status === "cleaning" ||
+                foundTable.status === "reserved"
+            ) {
+                setPageError(
+                    `${foundTable.name} hiện chưa thể nhận order. Vui lòng gọi nhân viên.`
+                );
+                return;
+            }
+
+            setBranch(foundBranch);
+            setTable(foundTable);
             setMenuItems(menuResponse.data.data || []);
         } catch (error) {
             console.error("Cannot load customer order page:", error);
-            alert("Không thể tải trang order. Vui lòng gọi nhân viên.");
+            setPageError("Không thể tải trang order. Vui lòng gọi nhân viên.");
         } finally {
             setLoading(false);
         }
@@ -35,7 +85,7 @@ function CustomerOrderPage() {
 
     useEffect(() => {
         loadData();
-    }, [tableId]);
+    }, [normalizedBranchCode, tableId]);
 
     const categories = useMemo(() => {
         const list = menuItems
@@ -56,6 +106,11 @@ function CustomerOrderPage() {
     }, [menuItems, selectedCategory]);
 
     const addToCart = (item) => {
+        if (!item.isAvailable) {
+            alert("Món này đang tạm hết");
+            return;
+        }
+
         const existedItem = cart.find((cartItem) => cartItem.menuItemId === item._id);
 
         if (existedItem) {
@@ -104,12 +159,12 @@ function CustomerOrderPage() {
     };
 
     const totalAmount = cart.reduce((sum, item) => {
-        return sum + item.price * item.quantity;
+        return sum + Number(item.price || 0) * Number(item.quantity || 0);
     }, 0);
 
     const submitOrder = async () => {
-        if (!table) {
-            alert("Không tìm thấy bàn");
+        if (!branch || !table) {
+            alert("QR không hợp lệ. Vui lòng gọi nhân viên.");
             return;
         }
 
@@ -122,6 +177,7 @@ function CustomerOrderPage() {
             setSubmitting(true);
 
             await api.post("/api/orders", {
+                branchCode: normalizedBranchCode,
                 tableId: table._id,
                 tableName: table.name,
                 customerName,
@@ -133,6 +189,8 @@ function CustomerOrderPage() {
 
             setCart([]);
             setCustomerName("");
+
+            loadData();
         } catch (error) {
             console.error("Cannot submit customer order:", error);
             alert(error.response?.data?.message || "Không thể gửi order");
@@ -145,8 +203,34 @@ function CustomerOrderPage() {
         return <div className="customer-order-loading">Đang tải menu...</div>;
     }
 
-    if (!table) {
-        return <div className="customer-order-loading">Không tìm thấy bàn.</div>;
+    if (pageError) {
+        return (
+            <div className="customer-order-page">
+                <header className="customer-order-header">
+                    <div>
+                        <h1>POS Coffee</h1>
+                        <p>QR Order</p>
+                    </div>
+                </header>
+
+                <section className="customer-info-card">
+                    <h2 style={{ marginTop: 0 }}>Không thể order</h2>
+                    <p style={{ color: "#7b6b5c", lineHeight: 1.6 }}>{pageError}</p>
+
+                    <button className="customer-submit-button" onClick={loadData}>
+                        Tải lại
+                    </button>
+                </section>
+            </div>
+        );
+    }
+
+    if (!branch || !table) {
+        return (
+            <div className="customer-order-loading">
+                Không tìm thấy thông tin bàn.
+            </div>
+        );
     }
 
     return (
@@ -154,7 +238,7 @@ function CustomerOrderPage() {
             <header className="customer-order-header">
                 <div>
                     <h1>POS Coffee</h1>
-                    <p>Order tại bàn</p>
+                    <p>{branch.name}</p>
                 </div>
 
                 <div className="customer-table-badge">
